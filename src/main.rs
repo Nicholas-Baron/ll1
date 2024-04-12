@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 use std::{env, fs};
 
+mod grammar;
+
 fn main() {
     let filename: PathBuf = match env::args().nth(1) {
         Some(path) => PathBuf::from(path),

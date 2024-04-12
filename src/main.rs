@@ -2,6 +2,8 @@ use std::path::PathBuf;
 use std::{env, fs};
 
 mod grammar;
+mod tokenizer;
+use tokenizer::Tokenizer;
 
 fn main() {
     let filename: PathBuf = match env::args().nth(1) {
@@ -27,4 +29,6 @@ fn main() {
         }
     };
     println!("{}", raw_input);
+
+    let _tokens = Tokenizer::from(raw_input);
 }

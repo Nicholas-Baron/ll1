@@ -3,6 +3,7 @@ use std::{env, fs};
 
 mod grammar;
 mod tokenizer;
+mod tokens;
 use tokenizer::Tokenizer;
 
 fn main() {

@@ -1,22 +1,19 @@
-use std::collections::HashMap;
-
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct Identifier(usize);
 
 #[derive(Debug, Default)]
-pub struct IdentifierMap(HashMap<Identifier, String>);
+pub struct IdentifierMap(Vec<String>);
 
 impl IdentifierMap {
     pub fn add_identifier(&mut self, word: String) -> Identifier {
-        if let Some(k) = self.0.iter().find_map(|(k, v)| (*v == word).then_some(k)) {
-            k.clone()
-        } else {
-            let new_id = (0..=self.0.len())
-                .map(Identifier)
-                .find(|k| !self.0.contains_key(k))
-                .unwrap();
-            self.0.insert(new_id.clone(), word);
+        self.find_identifier(&word).unwrap_or_else(|| {
+            let new_id = Identifier(self.0.len());
+            self.0.push(word);
             new_id
-        }
+        })
+    }
+
+    fn find_identifier(&self, word: &str) -> Option<Identifier> {
+        self.0.iter().position(|id| id == word).map(Identifier)
     }
 }

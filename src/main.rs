@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::{env, fs};
 
 mod grammar;
+mod identifier_map;
 mod tokenizer;
 mod tokens;
 use tokenizer::Tokenizer;

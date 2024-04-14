@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-#[derive(PartialEq, Eq, Hash)]
-pub struct Identifier(usize);
+use crate::identifier_map::{Identifier, IdentifierMap};
 
 pub enum RuleOption {
     Empty,
@@ -24,5 +23,5 @@ pub struct Grammar {
     terminals: HashSet<Identifier>,
     non_terminals: HashMap<Identifier, RuleOption>,
     starting_id: Identifier,
-    string_map: HashMap<Identifier, String>,
+    identifier_map: IdentifierMap,
 }

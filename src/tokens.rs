@@ -1,3 +1,5 @@
+use crate::identifier_map::Identifier;
+
 #[derive(PartialEq, Eq, Debug)]
 pub enum Token {
     Semi,
@@ -11,4 +13,5 @@ pub enum Token {
     Start,
     Terminal,
     Empty,
+    Identifier(Identifier),
 }

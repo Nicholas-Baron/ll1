@@ -1,10 +1,11 @@
 use std::collections::VecDeque;
 
-use crate::tokens::Token;
+use crate::{identifier_map::IdentifierMap, tokens::Token};
 
 #[derive(Debug)]
 pub struct Tokenizer {
     input: VecDeque<char>,
+    identifiers: IdentifierMap,
 }
 
 impl From<String> for Tokenizer {
@@ -17,6 +18,7 @@ impl FromIterator<char> for Tokenizer {
     fn from_iter<T: IntoIterator<Item = char>>(iter: T) -> Self {
         Self {
             input: iter.into_iter().collect(),
+            identifiers: Default::default(),
         }
     }
 }
@@ -68,7 +70,7 @@ impl Tokenizer {
             "terminal" => Token::Terminal,
             "start" => Token::Start,
             "empty" => Token::Empty,
-            _ => todo!("Support identifiers like {word}"),
+            _ => Token::Identifier(self.identifiers.add_identifier(word)),
         }
     }
 }
@@ -160,5 +162,16 @@ mod test {
             Vec::from_iter(toks),
             [Token::Terminal, Token::Start, Token::Empty, Token::Empty]
         );
+    }
+
+    #[test]
+    fn identifiers_are_parsed() {
+        let toks = Tokenizer::from("  hello world".to_string());
+        let tokens: Vec<Token> = toks.collect();
+
+        assert!(matches!(
+            tokens.as_slice(),
+            [Token::Identifier(_), Token::Identifier(_)]
+        ));
     }
 }

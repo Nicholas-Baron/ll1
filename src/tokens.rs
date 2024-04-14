@@ -8,4 +8,7 @@ pub enum Token {
     RParen,
     LCurly,
     RCurly,
+    Start,
+    Terminal,
+    Empty,
 }

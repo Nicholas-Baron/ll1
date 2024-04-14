@@ -52,6 +52,25 @@ impl Tokenizer {
             }
         }
     }
+
+    fn read_identifier(&mut self, first: char) -> Token {
+        let mut word: String = [first].into_iter().collect();
+
+        while let Some(c) = self.input.front() {
+            if matches!(c, 'a'..='z' | 'A'..='Z' | '_') {
+                word.push(self.input.pop_front().unwrap());
+            } else {
+                break;
+            }
+        }
+
+        match word.as_str() {
+            "terminal" => Token::Terminal,
+            "start" => Token::Start,
+            "empty" => Token::Empty,
+            _ => todo!("Support identifiers like {word}"),
+        }
+    }
 }
 
 impl Iterator for Tokenizer {
@@ -61,6 +80,26 @@ impl Iterator for Tokenizer {
         self.remove_comments();
 
         match self.input.pop_front()? {
+            c @ ('a'..='z' | 'A'..='Z' | '_') => Some(self.read_identifier(c)),
+            '%' => {
+                let mut expected = "empty".chars();
+
+                while let (Some(c), Some(expect)) = (self.input.pop_front(), expected.next()) {
+                    if c != expect {
+                        panic!("'%' can only start a '%empty'");
+                    }
+                }
+
+                if self
+                    .input
+                    .front()
+                    .is_some_and(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
+                {
+                    panic!("'%' can only start a '%empty'");
+                }
+
+                Some(Token::Empty)
+            }
             // Single character tokens
             '[' => Some(Token::LBracket),
             ']' => Some(Token::RBracket),
@@ -108,6 +147,15 @@ mod test {
                 Token::LParen,
                 Token::RParen
             ]
+        );
+    }
+
+    #[test]
+    fn all_keywords_are_parsed() {
+        let toks = Tokenizer::from("  terminal start empty %empty".to_string());
+        assert_eq!(
+            Vec::from_iter(toks),
+            [Token::Terminal, Token::Start, Token::Empty, Token::Empty]
         );
     }
 }

@@ -57,7 +57,7 @@ impl Tokenizer {
         let mut word: String = [first].into_iter().collect();
 
         while let Some(c) = self.input.front() {
-            if matches!(c, 'a'..='z' | 'A'..='Z' | '_') {
+            if is_word_character(*c) {
                 word.push(self.input.pop_front().unwrap());
             } else {
                 break;
@@ -80,7 +80,7 @@ impl Iterator for Tokenizer {
         self.remove_comments();
 
         match self.input.pop_front()? {
-            c @ ('a'..='z' | 'A'..='Z' | '_') => Some(self.read_identifier(c)),
+            c if is_word_character(c) => Some(self.read_identifier(c)),
             '%' => {
                 let mut expected = "empty".chars();
 
@@ -90,11 +90,7 @@ impl Iterator for Tokenizer {
                     }
                 }
 
-                if self
-                    .input
-                    .front()
-                    .is_some_and(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
-                {
+                if self.input.front().is_some_and(|c| is_word_character(*c)) {
                     panic!("'%' can only start a '%empty'");
                 }
 
@@ -112,6 +108,13 @@ impl Iterator for Tokenizer {
             c => todo!("Unknown character: {c:?}"),
         }
     }
+}
+
+/// Identifiers and Keywords (collectivly "words") can only contain
+/// - Letters (aka Unicode alphabetic)
+/// - Underscore '_'
+fn is_word_character(c: char) -> bool {
+    c.is_alphabetic() || c == '_'
 }
 
 #[cfg(test)]

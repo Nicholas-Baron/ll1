@@ -1,7 +1,7 @@
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct Identifier(usize);
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct IdentifierMap(Vec<String>);
 
 impl IdentifierMap {

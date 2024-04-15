@@ -3,9 +3,13 @@ use std::{env, fs};
 
 mod grammar;
 mod identifier_map;
+mod parser;
+use parser::Parser;
 mod tokenizer;
 mod tokens;
 use tokenizer::Tokenizer;
+
+use crate::parser::ParserError;
 
 fn main() {
     let filename: PathBuf = match env::args().nth(1) {
@@ -32,5 +36,15 @@ fn main() {
     };
     println!("{}", raw_input);
 
-    let _tokens = Tokenizer::from(raw_input);
+    let tokens = Tokenizer::from(raw_input);
+    let parser = Parser::new(tokens);
+    let _user_grammar = match parser.parse() {
+        Ok(g) => g,
+        Err(e) => {
+            match e {
+                ParserError::NoStartingId => eprintln!("No starting id specified"),
+            }
+            return;
+        }
+    };
 }

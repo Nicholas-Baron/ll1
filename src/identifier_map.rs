@@ -16,4 +16,12 @@ impl IdentifierMap {
     fn find_identifier(&self, word: &str) -> Option<Identifier> {
         self.0.iter().position(|id| id == word).map(Identifier)
     }
+
+    pub fn text_for(&self, id: Identifier) -> &str {
+        self.0.get(id.0).unwrap()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
 }

@@ -1,6 +1,9 @@
 use std::collections::VecDeque;
 
-use crate::{identifier_map::IdentifierMap, tokens::Token};
+use crate::{
+    identifier_map::{Identifier, IdentifierMap},
+    tokens::Token,
+};
 
 #[derive(Debug)]
 pub struct Tokenizer {
@@ -72,6 +75,14 @@ impl Tokenizer {
             "empty" => Token::Empty,
             _ => Token::Identifier(self.identifiers.add_identifier(word)),
         }
+    }
+
+    pub fn identifier_map(self) -> IdentifierMap {
+        self.identifiers
+    }
+
+    pub fn text_for(&self, i: Identifier) -> &str {
+        self.identifiers.text_for(i)
     }
 }
 

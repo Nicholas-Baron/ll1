@@ -15,6 +15,7 @@ pub enum ParserError {
     },
     UnexpectedToken {
         expected: Vec<Token>,
+        could_be_id: bool,
         found: Option<Token>,
     },
 }
@@ -39,6 +40,7 @@ impl Parser {
         if found != expected {
             Err(ParserError::UnexpectedToken {
                 expected: expected.into_iter().collect(),
+                could_be_id: false,
                 found,
             })
         } else {
@@ -63,8 +65,9 @@ impl Parser {
                 self.consume_expected(Some(Token::Semi))?;
             } else {
                 return Err(ParserError::UnexpectedToken {
-                    expected: todo!(),
-                    found: todo!(),
+                    expected: vec![Token::Start],
+                    could_be_id: true,
+                    found: Some(tok),
                 });
             }
         }

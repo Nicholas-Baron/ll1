@@ -47,8 +47,19 @@ fn main() {
                 ParserError::DuplicateStarts { starts } => {
                     eprintln!("Found two starts: {:?}", starts)
                 }
-                ParserError::UnexpectedToken { found, expected } => {
-                    eprintln!("Expected {:?}; Found {:?}", expected, found)
+                ParserError::UnexpectedToken {
+                    found,
+                    expected,
+                    could_be_id,
+                } => {
+                    eprintln!(
+                        "Expected {:?}{}; Found {:?}",
+                        expected,
+                        could_be_id
+                            .then_some("or an identifier")
+                            .unwrap_or_default(),
+                        found
+                    )
                 }
             }
             return;

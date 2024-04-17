@@ -17,6 +17,41 @@ pub enum ParserError {
     },
 }
 
+impl std::fmt::Display for ParserError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParserError::NoStartingId => f.write_str("No starting id specified"),
+            ParserError::DuplicateStarts { starts } => {
+                f.write_fmt(format_args!("Found two starts: {:?}", starts))
+            }
+            ParserError::UnexpectedToken {
+                found,
+                expected,
+                could_be_id,
+            } => match (expected.len(), could_be_id) {
+                (0, true) => f.write_fmt(format_args!("Expected an identifier; Found {:?}", found)),
+                (0, false) => f.write_fmt(format_args!("Expected end of input; Found {:?}", found)),
+                (1, _) => f.write_fmt(format_args!(
+                    "Expected {:?}{}; Found {:?}",
+                    expected[0],
+                    could_be_id
+                        .then_some("or an identifier")
+                        .unwrap_or_default(),
+                    found
+                )),
+                (_, _) => f.write_fmt(format_args!(
+                    "Expected one of {:?}{}; Found {:?}",
+                    expected,
+                    could_be_id
+                        .then_some("or an identifier")
+                        .unwrap_or_default(),
+                    found
+                )),
+            },
+        }
+    }
+}
+
 pub struct Parser {
     tokenizer: Tokenizer,
     grammar_builder: GrammarBuilder,

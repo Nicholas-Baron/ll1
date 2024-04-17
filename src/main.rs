@@ -9,8 +9,6 @@ mod tokenizer;
 mod tokens;
 use tokenizer::Tokenizer;
 
-use crate::parser::ParserError;
-
 fn main() {
     let filename: PathBuf = match env::args().nth(1) {
         Some(path) => PathBuf::from(path),
@@ -41,26 +39,7 @@ fn main() {
     let _user_grammar = match parser.parse() {
         Ok(g) => g,
         Err(e) => {
-            match e {
-                ParserError::NoStartingId => eprintln!("No starting id specified"),
-                ParserError::DuplicateStarts { starts } => {
-                    eprintln!("Found two starts: {:?}", starts)
-                }
-                ParserError::UnexpectedToken {
-                    found,
-                    expected,
-                    could_be_id,
-                } => {
-                    eprintln!(
-                        "Expected {:?}{}; Found {:?}",
-                        expected,
-                        could_be_id
-                            .then_some("or an identifier")
-                            .unwrap_or_default(),
-                        found
-                    )
-                }
-            }
+            eprintln!("{}", e);
             return;
         }
     };

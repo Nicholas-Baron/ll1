@@ -44,9 +44,11 @@ fn main() {
             match e {
                 ParserError::NoStartingId => eprintln!("No starting id specified"),
                 ParserError::ExpectedId { found } => eprintln!("Expected an Id; Found {:?}", found),
-                ParserError::UnexpectedEnd => eprintln!("Unexpected End of Input"),
                 ParserError::DuplicateStarts { starts } => {
                     eprintln!("Found two starts: {:?}", starts)
+                }
+                ParserError::UnexpectedToken { found, expected } => {
+                    eprintln!("Expected {:?}; Found {:?}", expected, found)
                 }
             }
             return;

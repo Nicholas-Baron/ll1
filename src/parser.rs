@@ -7,9 +7,16 @@ use crate::{
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParserError {
     NoStartingId,
-    ExpectedId { found: Token },
-    UnexpectedEnd,
-    DuplicateStarts { starts: [String; 2] },
+    ExpectedId {
+        found: Option<Token>,
+    },
+    DuplicateStarts {
+        starts: [String; 2],
+    },
+    UnexpectedToken {
+        expected: Vec<Token>,
+        found: Option<Token>,
+    },
 }
 
 pub struct Parser {
@@ -27,13 +34,24 @@ impl Parser {
         }
     }
 
+    fn consume_expected(&mut self, expected: Option<Token>) -> ParserResult<()> {
+        let found = self.tokenizer.next();
+        if found != expected {
+            Err(ParserError::UnexpectedToken {
+                expected: expected.into_iter().collect(),
+                found,
+            })
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn parse(mut self) -> ParserResult<Grammar> {
         while let Some(tok) = self.tokenizer.next() {
             if tok == Token::Start {
                 let id = match self.tokenizer.next() {
-                    None => return Err(ParserError::UnexpectedEnd),
                     Some(Token::Identifier(id)) => id,
-                    Some(tok) => return Err(ParserError::ExpectedId { found: tok }),
+                    tok => return Err(ParserError::ExpectedId { found: tok }),
                 };
 
                 if let Some(old_start) = self.grammar_builder.start(id.clone()) {
@@ -41,6 +59,13 @@ impl Parser {
                         starts: [id, old_start].map(|i| self.tokenizer.text_for(i).to_string()),
                     });
                 }
+
+                self.consume_expected(Some(Token::Semi))?;
+            } else {
+                return Err(ParserError::UnexpectedToken {
+                    expected: todo!(),
+                    found: todo!(),
+                });
             }
         }
 

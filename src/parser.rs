@@ -7,9 +7,6 @@ use crate::{
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParserError {
     NoStartingId,
-    ExpectedId {
-        found: Option<Token>,
-    },
     DuplicateStarts {
         starts: [String; 2],
     },
@@ -53,7 +50,13 @@ impl Parser {
             if tok == Token::Start {
                 let id = match self.tokenizer.next() {
                     Some(Token::Identifier(id)) => id,
-                    tok => return Err(ParserError::ExpectedId { found: tok }),
+                    tok => {
+                        return Err(ParserError::UnexpectedToken {
+                            found: tok,
+                            could_be_id: true,
+                            expected: vec![],
+                        })
+                    }
                 };
 
                 if let Some(old_start) = self.grammar_builder.start(id.clone()) {

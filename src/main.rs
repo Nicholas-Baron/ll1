@@ -43,7 +43,6 @@ fn main() {
         Err(e) => {
             match e {
                 ParserError::NoStartingId => eprintln!("No starting id specified"),
-                ParserError::ExpectedId { found } => eprintln!("Expected an Id; Found {:?}", found),
                 ParserError::DuplicateStarts { starts } => {
                     eprintln!("Found two starts: {:?}", starts)
                 }

@@ -15,12 +15,16 @@ pub enum ParserError {
         could_be_id: bool,
         found: Option<Token>,
     },
+    EmptyTerminalList,
 }
 
 impl std::fmt::Display for ParserError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ParserError::NoStartingId => f.write_str("No starting id specified"),
+            ParserError::EmptyTerminalList => {
+                f.write_str("`terminal` needs to be followed by at least 1 identifier")
+            }
             ParserError::DuplicateStarts { starts } => {
                 f.write_fmt(format_args!("Found two starts: {:?}", starts))
             }
@@ -101,6 +105,34 @@ impl Parser {
                 }
 
                 self.consume_expected(Some(Token::Semi))?;
+            } else if tok == Token::Terminal {
+                let mut new_terminals = vec![];
+                loop {
+                    match self.tokenizer.next() {
+                        Some(Token::Semi) => break,
+                        Some(Token::Identifier(id)) => new_terminals.push(id),
+                        found => {
+                            return Err(ParserError::UnexpectedToken {
+                                expected: vec![Token::Semi],
+                                could_be_id: true,
+                                found,
+                            })
+                        }
+                    }
+                }
+
+                if new_terminals.is_empty() {
+                    return Err(ParserError::EmptyTerminalList);
+                }
+
+                for id in new_terminals {
+                    use crate::grammar::AddIdentifierStatus;
+                    match self.grammar_builder.add_terminal(id) {
+                        AddIdentifierStatus::Success => {}
+                        AddIdentifierStatus::DuplicateTerminal => todo!(),
+                        AddIdentifierStatus::DuplicateNonTerminal => todo!(),
+                    }
+                }
             } else {
                 return Err(ParserError::UnexpectedToken {
                     expected: vec![Token::Start],
@@ -122,6 +154,7 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
     #[test]
     fn empty_grammar_errors() {
@@ -136,5 +169,21 @@ mod tests {
         let grammar = grammar.unwrap();
         assert_eq!(grammar.identifiers_used(), 1);
         assert_eq!(grammar.text_for(grammar.starting_id()), "s");
+    }
+
+    #[test]
+    fn start_and_terminals_parse() {
+        let grammar = Parser::new("terminal t u; start s;".to_string().into()).parse();
+        assert!(grammar.is_ok());
+        let grammar = grammar.unwrap();
+        assert_eq!(grammar.identifiers_used(), 3);
+        assert_eq!(grammar.text_for(grammar.starting_id()), "s");
+        assert_eq!(
+            grammar
+                .terminals()
+                .map(|id| grammar.text_for(id).to_string())
+                .collect::<HashSet<_>>(),
+            HashSet::from_iter(["t".to_string(), "u".to_string()])
+        );
     }
 }

@@ -48,6 +48,16 @@ impl Grammar {
     pub fn text_for(&self, id: Identifier) -> &str {
         self.identifier_map.text_for(id)
     }
+
+    pub fn terminals(&self) -> impl Iterator<Item = Identifier> + '_ {
+        self.terminals.iter().cloned()
+    }
+}
+
+pub enum AddIdentifierStatus {
+    Success,
+    DuplicateTerminal,
+    DuplicateNonTerminal,
 }
 
 #[derive(Default)]
@@ -88,5 +98,15 @@ impl GrammarBuilder {
 
     pub fn identifier_map(&mut self, identifier_map: IdentifierMap) {
         self.identifier_map = identifier_map;
+    }
+
+    pub fn add_terminal(&mut self, id: Identifier) -> AddIdentifierStatus {
+        if self.non_terminals.contains_key(&id) {
+            AddIdentifierStatus::DuplicateNonTerminal
+        } else if self.terminals.insert(id) {
+            AddIdentifierStatus::Success
+        } else {
+            AddIdentifierStatus::DuplicateTerminal
+        }
     }
 }

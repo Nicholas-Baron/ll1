@@ -16,6 +16,7 @@ pub enum ParserError {
         found: Option<Token>,
     },
     EmptyTerminalList,
+    TerminalDeclaredTwice(String),
 }
 
 impl std::fmt::Display for ParserError {
@@ -27,6 +28,9 @@ impl std::fmt::Display for ParserError {
             }
             ParserError::DuplicateStarts { starts } => {
                 f.write_fmt(format_args!("Found two starts: {:?}", starts))
+            }
+            ParserError::TerminalDeclaredTwice(id) => {
+                f.write_fmt(format_args!("Terminal {} was declared twice", id))
             }
             ParserError::UnexpectedToken {
                 found,
@@ -127,9 +131,13 @@ impl Parser {
 
                 for id in new_terminals {
                     use crate::grammar::AddIdentifierStatus;
-                    match self.grammar_builder.add_terminal(id) {
+                    match self.grammar_builder.add_terminal(id.clone()) {
                         AddIdentifierStatus::Success => {}
-                        AddIdentifierStatus::DuplicateTerminal => todo!(),
+                        AddIdentifierStatus::DuplicateTerminal => {
+                            return Err(ParserError::TerminalDeclaredTwice(
+                                self.tokenizer.text_for(id).to_string(),
+                            ))
+                        }
                         AddIdentifierStatus::DuplicateNonTerminal => todo!(),
                     }
                 }
@@ -185,5 +193,11 @@ mod tests {
                 .collect::<HashSet<_>>(),
             HashSet::from_iter(["t".to_string(), "u".to_string()])
         );
+    }
+
+    #[test]
+    fn duplicate_terminals_error() {
+        let grammar = Parser::new("terminal t t;".to_string().into()).parse();
+        assert!(grammar.is_err());
     }
 }

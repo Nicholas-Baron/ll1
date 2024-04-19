@@ -1,5 +1,5 @@
 use crate::{
-    grammar::{Grammar, GrammarBuilder},
+    grammar::{Grammar, GrammarBuilder, RuleOption},
     tokenizer::Tokenizer,
     tokens::Token,
 };
@@ -141,6 +141,16 @@ impl Parser {
                         AddIdentifierStatus::DuplicateNonTerminal => todo!(),
                     }
                 }
+            } else if let Token::Identifier(lhs) = tok {
+                self.consume_expected(Some(Token::Colon))?;
+                let rhs = self.parse_rhs()?;
+
+                use crate::grammar::AddIdentifierStatus;
+                match self.grammar_builder.add_rule(lhs, rhs) {
+                    AddIdentifierStatus::Success => {}
+                    AddIdentifierStatus::DuplicateTerminal => todo!(),
+                    AddIdentifierStatus::DuplicateNonTerminal => todo!(),
+                }
             } else {
                 return Err(ParserError::UnexpectedToken {
                     expected: vec![Token::Start],
@@ -156,6 +166,64 @@ impl Parser {
         self.grammar_builder
             .build()
             .ok_or(ParserError::NoStartingId)
+    }
+
+    fn parse_rhs(&mut self) -> ParserResult<RuleOption> {
+        let mut sequence: Vec<RuleOption> = vec![];
+
+        loop {
+            match self.tokenizer.next() {
+                Some(Token::Semi) => break,
+                Some(Token::Pipe) => todo!(),
+                Some(
+                    tok @ (Token::Empty
+                    | Token::LParen
+                    | Token::LCurly
+                    | Token::LBracket
+                    | Token::Identifier(_)),
+                ) => sequence.push(self.parse_rhs_item(tok)?),
+                found => {
+                    return Err(ParserError::UnexpectedToken {
+                        expected: vec![
+                            Token::Semi,
+                            Token::Pipe,
+                            Token::Empty,
+                            Token::LParen,
+                            Token::LCurly,
+                            Token::LBracket,
+                        ],
+                        could_be_id: true,
+                        found,
+                    })
+                }
+            }
+        }
+
+        match sequence.len() {
+            0 => todo!(),
+            1 => sequence.pop().ok_or_else(|| unreachable!()),
+            _ => Ok(RuleOption::Sequence {
+                contents: sequence.into_boxed_slice(),
+            }),
+        }
+    }
+
+    fn parse_rhs_item(&mut self, current: Token) -> ParserResult<RuleOption> {
+        match current {
+            Token::Semi => todo!(),
+            Token::Pipe => todo!(),
+            Token::Colon => todo!(),
+            Token::LBracket => todo!(),
+            Token::RBracket => todo!(),
+            Token::LParen => todo!(),
+            Token::RParen => todo!(),
+            Token::LCurly => todo!(),
+            Token::RCurly => todo!(),
+            Token::Start => todo!(),
+            Token::Terminal => todo!(),
+            Token::Empty => Ok(RuleOption::Empty),
+            Token::Identifier(id) => Ok(RuleOption::Id(id)),
+        }
     }
 }
 
@@ -199,5 +267,22 @@ mod tests {
     fn duplicate_terminals_error() {
         let grammar = Parser::new("terminal t t;".to_string().into()).parse();
         assert!(grammar.is_err());
+    }
+
+    #[test]
+    fn parse_rule() {
+        let grammar = Parser::new("terminal t; s : t t ; start s;".to_string().into()).parse();
+        eprintln!("{grammar:?}");
+        assert!(grammar.is_ok());
+        let grammar = grammar.unwrap();
+
+        let terminal = grammar.terminals().next().unwrap();
+        assert_eq!(
+            grammar.starting_rule(),
+            Some(RuleOption::Sequence {
+                contents: Box::new([RuleOption::Id(terminal.clone()), RuleOption::Id(terminal)])
+            })
+            .as_ref()
+        );
     }
 }

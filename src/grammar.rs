@@ -109,4 +109,22 @@ impl GrammarBuilder {
             AddIdentifierStatus::DuplicateTerminal
         }
     }
+
+    pub fn add_rule(&mut self, lhs: Identifier, rhs: RuleOption) -> AddIdentifierStatus {
+        if self.terminals.contains(&lhs) {
+            AddIdentifierStatus::DuplicateTerminal
+        } else {
+            use std::collections::hash_map::Entry;
+            match self.non_terminals.entry(lhs) {
+                Entry::Occupied(mut o) => {
+                    o.insert(rhs);
+                    AddIdentifierStatus::DuplicateNonTerminal
+                }
+                Entry::Vacant(v) => {
+                    v.insert(rhs);
+                    AddIdentifierStatus::Success
+                }
+            }
+        }
+    }
 }

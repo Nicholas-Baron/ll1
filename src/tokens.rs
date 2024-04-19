@@ -4,6 +4,7 @@ use crate::identifier_map::Identifier;
 pub enum Token {
     Semi,
     Pipe,
+    Colon,
     LBracket,
     RBracket,
     LParen,

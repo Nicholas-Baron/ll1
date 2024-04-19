@@ -118,6 +118,7 @@ impl Iterator for Tokenizer {
             '}' => Some(Token::RCurly),
             '|' => Some(Token::Pipe),
             ';' => Some(Token::Semi),
+            ':' => Some(Token::Colon),
             c => todo!("Unknown character: {c:?}"),
         }
     }
@@ -150,7 +151,7 @@ mod test {
 
     #[test]
     fn all_symbols_can_be_parsed() {
-        let toks = Tokenizer::from("  [ ] { } | ; ( ) ".to_string());
+        let toks = Tokenizer::from("  [ ] { } | ; ( ) : ".to_string());
         assert_eq!(
             Vec::from_iter(toks),
             vec![
@@ -161,7 +162,8 @@ mod test {
                 Token::Pipe,
                 Token::Semi,
                 Token::LParen,
-                Token::RParen
+                Token::RParen,
+                Token::Colon
             ]
         );
     }

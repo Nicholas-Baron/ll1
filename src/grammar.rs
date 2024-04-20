@@ -20,6 +20,20 @@ pub enum RuleOption {
     Repetition(Box<RuleOption>),
 }
 
+impl RuleOption {
+    fn identifiers(&self) -> HashSet<Identifier> {
+        match self {
+            RuleOption::Empty => [].into(),
+            RuleOption::Id(id) => [id.clone()].into(),
+            RuleOption::Alternates { contents } | RuleOption::Sequence { contents } => contents
+                .iter()
+                .flat_map(|item| item.identifiers())
+                .collect(),
+            RuleOption::Optional(inner) | RuleOption::Repetition(inner) => inner.identifiers(),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Grammar {
     terminals: HashSet<Identifier>,
@@ -51,6 +65,18 @@ impl Grammar {
 
     pub fn terminals(&self) -> impl Iterator<Item = Identifier> + '_ {
         self.terminals.iter().cloned()
+    }
+
+    pub fn undeclared_symbols(&self) -> impl Iterator<Item = Identifier> + '_ {
+        let all_components: HashSet<_> = self
+            .non_terminals
+            .values()
+            .flat_map(|opt| opt.identifiers())
+            .collect();
+
+        all_components
+            .into_iter()
+            .filter(|id| !self.non_terminals.contains_key(id) && !self.terminals.contains(id))
     }
 }
 

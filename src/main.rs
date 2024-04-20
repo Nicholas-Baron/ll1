@@ -35,11 +35,18 @@ fn main() {
 
     let tokens = Tokenizer::from(raw_input);
     let parser = Parser::new(tokens);
-    let _user_grammar = match parser.parse() {
+    let user_grammar = match parser.parse() {
         Ok(g) => g,
         Err(e) => {
             eprintln!("{}", e);
             return;
         }
     };
+
+    for id in user_grammar.undeclared_symbols() {
+        println!(
+            "Identifier {} is not explicity a terminal or nonterminal",
+            user_grammar.text_for(id)
+        );
+    }
 }

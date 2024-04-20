@@ -32,7 +32,6 @@ fn main() {
             return;
         }
     };
-    println!("{}", raw_input);
 
     let tokens = Tokenizer::from(raw_input);
     let parser = Parser::new(tokens);

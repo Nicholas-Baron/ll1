@@ -1,5 +1,5 @@
 
-terminal token id pipe;
+terminal token id pipe colon empty_mark start_kw semi;
 terminal lparen rparen lbrack rbrack lcurly rcurly;
 
 start file_contents;

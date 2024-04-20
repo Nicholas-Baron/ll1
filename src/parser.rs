@@ -169,19 +169,23 @@ impl Parser {
     }
 
     fn parse_rhs(&mut self) -> ParserResult<RuleOption> {
-        let mut sequence: Vec<RuleOption> = vec![];
+        let mut current_sequence: Vec<RuleOption> = vec![];
+        let mut pipe_set: Vec<Vec<_>> = vec![];
 
         loop {
             match self.tokenizer.next() {
                 Some(Token::Semi) => break,
-                Some(Token::Pipe) => todo!(),
+                Some(Token::Pipe) => {
+                    pipe_set.push(current_sequence);
+                    current_sequence = vec![];
+                }
                 Some(
                     tok @ (Token::Empty
                     | Token::LParen
                     | Token::LCurly
                     | Token::LBracket
                     | Token::Identifier(_)),
-                ) => sequence.push(self.parse_rhs_item(tok)?),
+                ) => current_sequence.push(self.parse_rhs_item(tok)?),
                 found => {
                     return Err(ParserError::UnexpectedToken {
                         expected: vec![
@@ -199,12 +203,23 @@ impl Parser {
             }
         }
 
-        match sequence.len() {
-            0 => todo!(),
-            1 => sequence.pop().ok_or_else(|| unreachable!()),
-            _ => Ok(RuleOption::Sequence {
-                contents: sequence.into_boxed_slice(),
-            }),
+        fn sequence_to_option(mut sequence: Vec<RuleOption>) -> RuleOption {
+            match sequence.len() {
+                0 => todo!(),
+                1 => sequence.pop().expect("Pop is guarded by a length check"),
+                _ => RuleOption::Sequence {
+                    contents: sequence.into_boxed_slice(),
+                },
+            }
+        }
+
+        if pipe_set.is_empty() {
+            Ok(sequence_to_option(current_sequence))
+        } else {
+            pipe_set.push(current_sequence);
+            Ok(RuleOption::Alternates {
+                contents: pipe_set.into_iter().map(sequence_to_option).collect(),
+            })
         }
     }
 
@@ -270,7 +285,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_rule() {
+    fn parse_simple_rule() {
         let grammar = Parser::new("terminal t; s : t t ; start s;".to_string().into()).parse();
         eprintln!("{grammar:?}");
         assert!(grammar.is_ok());
@@ -280,6 +295,23 @@ mod tests {
         assert_eq!(
             grammar.starting_rule(),
             Some(RuleOption::Sequence {
+                contents: Box::new([RuleOption::Id(terminal.clone()), RuleOption::Id(terminal)])
+            })
+            .as_ref()
+        );
+    }
+
+    #[test]
+    fn parse_pipe_rule() {
+        let grammar = Parser::new("terminal t; s : t | t ; start s;".to_string().into()).parse();
+        eprintln!("{grammar:?}");
+        assert!(grammar.is_ok());
+        let grammar = grammar.unwrap();
+
+        let terminal = grammar.terminals().next().unwrap();
+        assert_eq!(
+            grammar.starting_rule(),
+            Some(RuleOption::Alternates {
                 contents: Box::new([RuleOption::Id(terminal.clone()), RuleOption::Id(terminal)])
             })
             .as_ref()

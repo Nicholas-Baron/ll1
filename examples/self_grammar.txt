@@ -23,7 +23,7 @@ more_ids : semi
          | id more_ids
          ;
 
-start_marker : start id semi
+start_marker : start_kw id semi
              ;
 
 rule : id colon rhs 

@@ -1,0 +1,45 @@
+
+terminal token id pipe;
+terminal lparen rparen lbrack rbrack lcurly rcurly;
+
+start file_contents;
+
+file_contents : command command_next 
+              ;
+
+command_next : %empty
+             | file_contents
+             ;
+
+command : rule
+        | token_list
+        | start_marker
+        ;
+
+token_list : token id more_ids 
+           ;
+           
+more_ids : semi
+         | id more_ids
+         ;
+
+start_marker : start id semi
+             ;
+
+rule : id colon rhs 
+     ;
+
+rhs : item rhs_next
+    ;
+
+rhs_next : semi
+         | rhs
+         | pipe rhs
+         ;
+
+item : empty_mark
+     | id
+     | lparen rhs rparen
+     | lbrack rhs rbrack
+     | lcurly rhs rcurly
+     ;

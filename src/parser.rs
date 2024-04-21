@@ -271,7 +271,7 @@ mod tests {
         assert_eq!(grammar.text_for(grammar.starting_id()), "s");
         assert_eq!(
             grammar
-                .terminals()
+                .terminal_symbols()
                 .map(|id| grammar.text_for(id).to_string())
                 .collect::<HashSet<_>>(),
             HashSet::from_iter(["t".to_string(), "u".to_string()])
@@ -291,7 +291,7 @@ mod tests {
         assert!(grammar.is_ok());
         let grammar = grammar.unwrap();
 
-        let terminal = grammar.terminals().next().unwrap();
+        let terminal = grammar.terminal_symbols().next().unwrap();
         assert_eq!(
             grammar.starting_rule(),
             Some(RuleOption::Sequence {
@@ -308,7 +308,7 @@ mod tests {
         assert!(grammar.is_ok());
         let grammar = grammar.unwrap();
 
-        let terminal = grammar.terminals().next().unwrap();
+        let terminal = grammar.terminal_symbols().next().unwrap();
         assert_eq!(
             grammar.starting_rule(),
             Some(RuleOption::Alternates {

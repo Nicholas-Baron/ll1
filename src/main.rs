@@ -49,4 +49,27 @@ fn main() {
             user_grammar.text_for(id)
         );
     }
+
+    let reachable_symbols = user_grammar.reachable_symbols();
+    for unreachable_nonterminal in user_grammar
+        .nonterminal_symbols()
+        .filter(|sym| !reachable_symbols.contains(sym))
+    {
+        println!(
+            "Nonterminal {} cannot be reached from starting symbol {}",
+            user_grammar.text_for(unreachable_nonterminal),
+            user_grammar.text_for(user_grammar.starting_id())
+        );
+    }
+
+    for unreachable_terminal in user_grammar
+        .terminal_symbols()
+        .filter(|sym| !reachable_symbols.contains(sym))
+    {
+        println!(
+            "Terminal {} cannot be reached from starting symbol {}",
+            user_grammar.text_for(unreachable_terminal),
+            user_grammar.text_for(user_grammar.starting_id())
+        );
+    }
 }

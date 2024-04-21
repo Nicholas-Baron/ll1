@@ -63,8 +63,12 @@ impl Grammar {
         self.identifier_map.text_for(id)
     }
 
-    pub fn terminals(&self) -> impl Iterator<Item = Identifier> + '_ {
+    pub fn terminal_symbols(&self) -> impl Iterator<Item = Identifier> + '_ {
         self.terminals.iter().cloned()
+    }
+
+    pub fn nonterminal_symbols(&self) -> impl Iterator<Item = Identifier> + '_ {
+        self.non_terminals.keys().cloned()
     }
 
     pub fn undeclared_symbols(&self) -> impl Iterator<Item = Identifier> + '_ {
@@ -77,6 +81,29 @@ impl Grammar {
         all_components
             .into_iter()
             .filter(|id| !self.non_terminals.contains_key(id) && !self.terminals.contains(id))
+    }
+
+    pub fn reachable_symbols(&self) -> HashSet<Identifier> {
+        let mut reachable_symbols: HashSet<Identifier> = [self.starting_id.clone()].into();
+
+        loop {
+            let mut extended_reachable = HashSet::new();
+
+            for item in &reachable_symbols {
+                extended_reachable.insert(item.clone());
+                if let Some(rule) = self.non_terminals.get(item) {
+                    extended_reachable.extend(rule.identifiers());
+                }
+            }
+
+            if extended_reachable == reachable_symbols {
+                break;
+            } else {
+                reachable_symbols = extended_reachable;
+            }
+        }
+
+        reachable_symbols
     }
 }
 

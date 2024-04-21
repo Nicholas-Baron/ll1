@@ -63,6 +63,7 @@ impl std::fmt::Display for ParserError {
 pub struct Parser {
     tokenizer: Tokenizer,
     grammar_builder: GrammarBuilder,
+    peeked_token: Option<Token>,
 }
 
 type ParserResult<T> = Result<T, ParserError>;
@@ -72,11 +73,12 @@ impl Parser {
         Self {
             tokenizer,
             grammar_builder: GrammarBuilder::default(),
+            peeked_token: None,
         }
     }
 
     fn consume_expected(&mut self, expected: Option<Token>) -> ParserResult<()> {
-        let found = self.tokenizer.next();
+        let found = self.next_token();
         if found != expected {
             Err(ParserError::UnexpectedToken {
                 expected: expected.into_iter().collect(),
@@ -88,10 +90,14 @@ impl Parser {
         }
     }
 
+    fn next_token(&mut self) -> Option<Token> {
+        self.peeked_token.take().or_else(|| self.tokenizer.next())
+    }
+
     pub fn parse(mut self) -> ParserResult<Grammar> {
-        while let Some(tok) = self.tokenizer.next() {
+        while let Some(tok) = self.next_token() {
             if tok == Token::Start {
-                let id = match self.tokenizer.next() {
+                let id = match self.next_token() {
                     Some(Token::Identifier(id)) => id,
                     tok => {
                         return Err(ParserError::UnexpectedToken {
@@ -112,7 +118,7 @@ impl Parser {
             } else if tok == Token::Terminal {
                 let mut new_terminals = vec![];
                 loop {
-                    match self.tokenizer.next() {
+                    match self.next_token() {
                         Some(Token::Semi) => break,
                         Some(Token::Identifier(id)) => new_terminals.push(id),
                         found => {
@@ -173,7 +179,7 @@ impl Parser {
         let mut pipe_set: Vec<Vec<_>> = vec![];
 
         loop {
-            match self.tokenizer.next() {
+            match self.next_token() {
                 Some(Token::Semi) => break,
                 Some(Token::Pipe) => {
                     pipe_set.push(current_sequence);

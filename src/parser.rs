@@ -94,6 +94,14 @@ impl Parser {
         self.peeked_token.take().or_else(|| self.tokenizer.next())
     }
 
+    fn peek_token(&mut self) -> Option<&Token> {
+        if self.peeked_token.is_none() {
+            self.peeked_token = self.next_token();
+        }
+
+        self.peeked_token.as_ref()
+    }
+
     pub fn parse(mut self) -> ParserResult<Grammar> {
         while let Some(tok) = self.next_token() {
             if tok == Token::Start {
@@ -179,20 +187,25 @@ impl Parser {
         let mut pipe_set: Vec<Vec<_>> = vec![];
 
         loop {
-            match self.next_token() {
-                Some(Token::Semi) => break,
+            match self.peek_token() {
+                Some(Token::Semi) => {
+                    self.consume_expected(Some(Token::Semi)).unwrap();
+                    break;
+                }
                 Some(Token::Pipe) => {
+                    self.consume_expected(Some(Token::Pipe)).unwrap();
                     pipe_set.push(current_sequence);
                     current_sequence = vec![];
                 }
+                Some(Token::RParen | Token::RCurly | Token::RBracket) => break,
                 Some(
-                    tok @ (Token::Empty
+                    Token::Empty
                     | Token::LParen
                     | Token::LCurly
                     | Token::LBracket
-                    | Token::Identifier(_)),
-                ) => current_sequence.push(self.parse_rhs_item(tok)?),
-                found => {
+                    | Token::Identifier(_),
+                ) => current_sequence.push(self.parse_rhs_item()?),
+                _ => {
                     return Err(ParserError::UnexpectedToken {
                         expected: vec![
                             Token::Semi,
@@ -203,7 +216,7 @@ impl Parser {
                             Token::LBracket,
                         ],
                         could_be_id: true,
-                        found,
+                        found: self.next_token(),
                     })
                 }
             }
@@ -229,8 +242,14 @@ impl Parser {
         }
     }
 
-    fn parse_rhs_item(&mut self, current: Token) -> ParserResult<RuleOption> {
-        match current {
+    fn parse_rhs_item(&mut self) -> ParserResult<RuleOption> {
+        match self
+            .next_token()
+            .ok_or_else(|| ParserError::UnexpectedToken {
+                expected: vec![Token::Empty, Token::LCurly, Token::LParen, Token::LBracket],
+                could_be_id: true,
+                found: None,
+            })? {
             Token::Semi => todo!(),
             Token::Pipe => todo!(),
             Token::Colon => todo!(),
@@ -238,7 +257,11 @@ impl Parser {
             Token::RBracket => todo!(),
             Token::LParen => todo!(),
             Token::RParen => todo!(),
-            Token::LCurly => todo!(),
+            Token::LCurly => {
+                let inner = self.parse_rhs()?;
+                self.consume_expected(Some(Token::RCurly))?;
+                Ok(RuleOption::Repetition(Box::new(inner)))
+            }
             Token::RCurly => todo!(),
             Token::Start => todo!(),
             Token::Terminal => todo!(),
@@ -304,6 +327,20 @@ mod tests {
                 contents: Box::new([RuleOption::Id(terminal.clone()), RuleOption::Id(terminal)])
             })
             .as_ref()
+        );
+    }
+
+    #[test]
+    fn parse_repetition_rule() {
+        let grammar = Parser::new("terminal t; s : { t } ; start s;".to_string().into()).parse();
+        eprintln!("{grammar:?}");
+        assert!(grammar.is_ok());
+        let grammar = grammar.unwrap();
+
+        let terminal = grammar.terminal_symbols().next().unwrap();
+        assert_eq!(
+            grammar.starting_rule(),
+            Some(RuleOption::Repetition(Box::new(RuleOption::Id(terminal)))).as_ref()
         );
     }
 

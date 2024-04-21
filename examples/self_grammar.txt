@@ -16,12 +16,8 @@ command : rule
         | start_marker
         ;
 
-token_list : token id more_ids 
+token_list : token { id } semi
            ;
-           
-more_ids : semi
-         | id more_ids
-         ;
 
 start_marker : start_kw id semi
              ;

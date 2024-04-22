@@ -32,6 +32,22 @@ impl RuleOption {
             RuleOption::Optional(inner) | RuleOption::Repetition(inner) => inner.identifiers(),
         }
     }
+
+    fn first_set(&self) -> HashSet<Option<Identifier>> {
+        match self {
+            RuleOption::Empty => [None].into(),
+            RuleOption::Id(id) => [Some(id.clone())].into(),
+            RuleOption::Sequence { contents } => contents[0].first_set(),
+            RuleOption::Alternates { contents } => contents
+                .iter()
+                .map(RuleOption::first_set)
+                .fold(Default::default(), |acc, item| {
+                    acc.union(&item).cloned().collect()
+                }),
+            RuleOption::Optional(_) => todo!(),
+            RuleOption::Repetition(_) => todo!(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -104,6 +120,52 @@ impl Grammar {
         }
 
         reachable_symbols
+    }
+
+    pub fn first_sets(&self) -> HashMap<Identifier, HashSet<Option<Identifier>>> {
+        let mut first_sets: HashMap<_, HashSet<_>> = HashMap::new();
+
+        use std::collections::VecDeque;
+        let mut to_process: VecDeque<_> = self.non_terminals.keys().cloned().collect();
+
+        while let Some(non_term) = to_process.pop_front() {
+            let mut first_set = HashSet::new();
+
+            for symbol in self
+                .non_terminals
+                .get(&non_term)
+                .expect("should be nonterminal")
+                .first_set()
+            {
+                let Some(ref id) = symbol else {
+                    first_set.insert(symbol);
+                    continue;
+                };
+
+                if id == &non_term {
+                    continue;
+                }
+
+                if to_process.contains(id) {
+                    to_process.push_back(non_term.clone());
+                    first_set.clear();
+                    break;
+                }
+
+                if let Some(deeper_firsts) = first_sets.get(id) {
+                    first_set.extend(deeper_firsts.iter().cloned());
+                } else {
+                    first_set.insert(symbol);
+                }
+            }
+
+            // An empty set means we need to compute later
+            if !first_set.is_empty() {
+                first_sets.insert(non_term, first_set);
+            }
+        }
+
+        first_sets
     }
 }
 

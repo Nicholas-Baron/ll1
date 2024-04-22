@@ -72,4 +72,16 @@ fn main() {
             user_grammar.text_for(user_grammar.starting_id())
         );
     }
+
+    for (nonterminal, first_set) in user_grammar.first_sets() {
+        println!(
+            "FIRST({}) = {{ {} }}",
+            user_grammar.text_for(nonterminal),
+            first_set
+                .into_iter()
+                .map(|sym| sym.map_or("empty", |id| user_grammar.text_for(id)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
 }

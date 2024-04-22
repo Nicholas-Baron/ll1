@@ -253,7 +253,11 @@ impl Parser {
             Token::Semi => todo!(),
             Token::Pipe => todo!(),
             Token::Colon => todo!(),
-            Token::LBracket => todo!(),
+            Token::LBracket => {
+                let inner = self.parse_rhs()?;
+                self.consume_expected(Some(Token::RBracket))?;
+                Ok(RuleOption::Optional(Box::new(inner)))
+            }
             Token::RBracket => todo!(),
             Token::LParen => todo!(),
             Token::RParen => todo!(),
@@ -358,6 +362,20 @@ mod tests {
                 contents: Box::new([RuleOption::Id(terminal.clone()), RuleOption::Id(terminal)])
             })
             .as_ref()
+        );
+    }
+
+    #[test]
+    fn parse_optional_rule() {
+        let grammar = Parser::new("terminal t; s : [ t ] ; start s;".to_string().into()).parse();
+        eprintln!("{grammar:?}");
+        assert!(grammar.is_ok());
+        let grammar = grammar.unwrap();
+
+        let terminal = grammar.terminal_symbols().next().unwrap();
+        assert_eq!(
+            grammar.starting_rule(),
+            Some(RuleOption::Optional(Box::new(RuleOption::Id(terminal)))).as_ref()
         );
     }
 }

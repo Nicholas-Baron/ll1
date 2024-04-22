@@ -17,6 +17,7 @@ pub enum ParserError {
     },
     EmptyTerminalList,
     TerminalDeclaredTwice(String),
+    NonterminalDeclaredTwice(String),
 }
 
 impl std::fmt::Display for ParserError {
@@ -31,6 +32,9 @@ impl std::fmt::Display for ParserError {
             }
             ParserError::TerminalDeclaredTwice(id) => {
                 f.write_fmt(format_args!("Terminal {} was declared twice", id))
+            }
+            ParserError::NonterminalDeclaredTwice(id) => {
+                f.write_fmt(format_args!("Nonterminal {} was declared twice", id))
             }
             ParserError::UnexpectedToken {
                 found,
@@ -160,10 +164,14 @@ impl Parser {
                 let rhs = self.parse_rhs()?;
 
                 use crate::grammar::AddIdentifierStatus;
-                match self.grammar_builder.add_rule(lhs, rhs) {
+                match self.grammar_builder.add_rule(lhs.clone(), rhs) {
                     AddIdentifierStatus::Success => {}
                     AddIdentifierStatus::DuplicateTerminal => todo!(),
-                    AddIdentifierStatus::DuplicateNonTerminal => todo!(),
+                    AddIdentifierStatus::DuplicateNonTerminal => {
+                        return Err(ParserError::NonterminalDeclaredTwice(
+                            self.tokenizer.text_for(lhs).to_string(),
+                        ))
+                    }
                 }
             } else {
                 return Err(ParserError::UnexpectedToken {
@@ -377,5 +385,16 @@ mod tests {
             grammar.starting_rule(),
             Some(RuleOption::Optional(Box::new(RuleOption::Id(terminal)))).as_ref()
         );
+    }
+
+    #[test]
+    fn duplicate_nonterminals_error() {
+        let grammar = Parser::new(
+            "terminal t; s : [ t ] ; s : [ t ] ; start s;"
+                .to_string()
+                .into(),
+        )
+        .parse();
+        assert!(grammar.is_err());
     }
 }

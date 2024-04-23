@@ -18,6 +18,7 @@ pub enum ParserError {
     EmptyTerminalList,
     TerminalDeclaredTwice(String),
     NonterminalDeclaredTwice(String),
+    ConflictingDeclaration(String),
 }
 
 impl std::fmt::Display for ParserError {
@@ -36,6 +37,10 @@ impl std::fmt::Display for ParserError {
             ParserError::NonterminalDeclaredTwice(id) => {
                 f.write_fmt(format_args!("Nonterminal {} was declared twice", id))
             }
+            ParserError::ConflictingDeclaration(id) => f.write_fmt(format_args!(
+                "Id {} was given both a nonterminal and terminal definition",
+                id,
+            )),
             ParserError::UnexpectedToken {
                 found,
                 expected,
@@ -156,7 +161,11 @@ impl Parser {
                                 self.tokenizer.text_for(id).to_string(),
                             ))
                         }
-                        AddIdentifierStatus::DuplicateNonTerminal => todo!(),
+                        AddIdentifierStatus::DuplicateNonTerminal => {
+                            return Err(ParserError::ConflictingDeclaration(
+                                self.tokenizer.text_for(id).to_string(),
+                            ))
+                        }
                     }
                 }
             } else if let Token::Identifier(lhs) = tok {
@@ -166,7 +175,11 @@ impl Parser {
                 use crate::grammar::AddIdentifierStatus;
                 match self.grammar_builder.add_rule(lhs.clone(), rhs) {
                     AddIdentifierStatus::Success => {}
-                    AddIdentifierStatus::DuplicateTerminal => todo!(),
+                    AddIdentifierStatus::DuplicateTerminal => {
+                        return Err(ParserError::ConflictingDeclaration(
+                            self.tokenizer.text_for(lhs).to_string(),
+                        ))
+                    }
                     AddIdentifierStatus::DuplicateNonTerminal => {
                         return Err(ParserError::NonterminalDeclaredTwice(
                             self.tokenizer.text_for(lhs).to_string(),

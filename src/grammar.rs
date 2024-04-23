@@ -49,7 +49,7 @@ impl RuleOption {
         }
     }
 
-    fn local_follows(&self, nonterminal: &Identifier, current_rule_lhs: &Identifier) -> FollowSet {
+    fn local_follows(&self, nonterminal: &Identifier) -> FollowSet {
         match self {
             RuleOption::Empty => [].into(),
             RuleOption::Id(id) => (id == nonterminal)
@@ -84,7 +84,7 @@ impl RuleOption {
             }
             RuleOption::Alternates { contents } => contents
                 .iter()
-                .map(|item| item.local_follows(nonterminal, current_rule_lhs))
+                .map(|item| item.local_follows(nonterminal))
                 .fold(FollowSet::new(), |acc, item| {
                     acc.union(&item).cloned().collect()
                 }),
@@ -276,7 +276,7 @@ impl Grammar {
                 let mut local_follow_set = follow_sets.remove(&nonterminal).unwrap_or_default();
 
                 for (current, rule) in &self.non_terminals {
-                    for item in rule.local_follows(&nonterminal, current) {
+                    for item in rule.local_follows(&nonterminal) {
                         match item {
                             FollowItem::EndOfInput => {
                                 if let Some(set) = follow_sets.get(current) {
@@ -284,7 +284,7 @@ impl Grammar {
                                 }
                             }
                             FollowItem::Id(ref id) => {
-                                if let Some(firsts) = first_sets.get(&id) {
+                                if let Some(firsts) = first_sets.get(id) {
                                     for item in firsts {
                                         match item {
                                             Some(id) => {

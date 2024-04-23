@@ -11,7 +11,7 @@ pub enum ParserError {
         starts: [String; 2],
     },
     UnexpectedToken {
-        expected: Vec<Token>,
+        expected: Box<[Token]>,
         could_be_id: bool,
         found: Option<Token>,
     },
@@ -120,7 +120,7 @@ impl Parser {
                         return Err(ParserError::UnexpectedToken {
                             found: tok,
                             could_be_id: true,
-                            expected: vec![],
+                            expected: Box::new([]),
                         })
                     }
                 };
@@ -140,7 +140,7 @@ impl Parser {
                         Some(Token::Identifier(id)) => new_terminals.push(id),
                         found => {
                             return Err(ParserError::UnexpectedToken {
-                                expected: vec![Token::Semi],
+                                expected: Box::new([Token::Semi]),
                                 could_be_id: true,
                                 found,
                             })
@@ -188,7 +188,7 @@ impl Parser {
                 }
             } else {
                 return Err(ParserError::UnexpectedToken {
-                    expected: vec![Token::Start],
+                    expected: Box::new([Token::Start]),
                     could_be_id: true,
                     found: Some(tok),
                 });
@@ -225,14 +225,14 @@ impl Parser {
                 ) => current_sequence.push(self.parse_rhs_item()?),
                 _ => {
                     return Err(ParserError::UnexpectedToken {
-                        expected: vec![
+                        expected: Box::new([
                             Token::Semi,
                             Token::Pipe,
                             Token::Empty,
                             Token::LParen,
                             Token::LCurly,
                             Token::LBracket,
-                        ],
+                        ]),
                         could_be_id: true,
                         found: self.next_token(),
                     })
@@ -264,7 +264,7 @@ impl Parser {
         match self
             .next_token()
             .ok_or_else(|| ParserError::UnexpectedToken {
-                expected: vec![Token::Empty, Token::LCurly, Token::LParen, Token::LBracket],
+                expected: Box::new([Token::Empty, Token::LCurly, Token::LParen, Token::LBracket]),
                 could_be_id: true,
                 found: None,
             })? {

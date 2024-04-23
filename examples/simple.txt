@@ -1,0 +1,10 @@
+start s;
+
+terminal t u v ;
+
+s : t sub v
+  ;
+
+sub : u
+    | s
+    ;

@@ -84,4 +84,19 @@ fn main() {
                 .join(", ")
         );
     }
+
+    for (nonterminal, follow_set) in user_grammar.follow_sets() {
+        println!(
+            "FOLLOW({}) = {{ {} }}",
+            user_grammar.text_for(nonterminal),
+            follow_set
+                .into_iter()
+                .map(|sym| match sym {
+                    grammar::FollowItem::EndOfInput => "$",
+                    grammar::FollowItem::Id(id) => user_grammar.text_for(id),
+                })
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
 }

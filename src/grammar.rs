@@ -48,6 +48,50 @@ impl RuleOption {
             RuleOption::Repetition(_) => todo!(),
         }
     }
+
+    fn local_follows(&self, nonterminal: &Identifier, current_rule_lhs: &Identifier) -> FollowSet {
+        match self {
+            RuleOption::Empty => [].into(),
+            RuleOption::Id(id) => (id == nonterminal)
+                .then_some([FollowItem::EndOfInput])
+                .map(Into::into)
+                .unwrap_or_default(),
+            RuleOption::Sequence { contents } => {
+                let mut local_follow_set = FollowSet::new();
+                let mut slice = &contents[..];
+                let id_rule = RuleOption::Id(nonterminal.clone());
+
+                while let Some(idx) = slice.iter().position(|item| item == &id_rule) {
+                    slice = &slice[idx + 1..];
+
+                    if let Some(next) = slice.first() {
+                        for item in next.first_set() {
+                            match item {
+                                Some(id) => {
+                                    local_follow_set.insert(FollowItem::Id(id));
+                                }
+                                None => {
+                                    local_follow_set.insert(FollowItem::EndOfInput);
+                                }
+                            }
+                        }
+                    } else {
+                        local_follow_set.insert(FollowItem::EndOfInput);
+                    }
+                }
+
+                local_follow_set
+            }
+            RuleOption::Alternates { contents } => contents
+                .iter()
+                .map(|item| item.local_follows(nonterminal, current_rule_lhs))
+                .fold(FollowSet::new(), |acc, item| {
+                    acc.union(&item).cloned().collect()
+                }),
+            RuleOption::Optional(_) => todo!(),
+            RuleOption::Repetition(_) => todo!(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -219,7 +263,67 @@ impl Grammar {
 
         first_sets
     }
+
+    pub fn follow_sets(&self) -> HashMap<Identifier, FollowSet> {
+        let mut follow_sets: HashMap<_, FollowSet> =
+            [(self.starting_id.clone(), [FollowItem::EndOfInput].into())].into();
+        let first_sets = self.first_sets();
+
+        loop {
+            let old_follows = follow_sets.clone();
+
+            for nonterminal in self.nonterminal_symbols() {
+                let mut local_follow_set = follow_sets.remove(&nonterminal).unwrap_or_default();
+
+                for (current, rule) in &self.non_terminals {
+                    for item in rule.local_follows(&nonterminal, current) {
+                        match item {
+                            FollowItem::EndOfInput => {
+                                if let Some(set) = follow_sets.get(current) {
+                                    local_follow_set.extend(set.iter().cloned());
+                                }
+                            }
+                            FollowItem::Id(ref id) => {
+                                if let Some(firsts) = first_sets.get(&id) {
+                                    for item in firsts {
+                                        match item {
+                                            Some(id) => {
+                                                local_follow_set.insert(FollowItem::Id(id.clone()));
+                                            }
+                                            None => {
+                                                if let Some(set) = follow_sets.get(current) {
+                                                    local_follow_set.extend(set.iter().cloned());
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    local_follow_set.insert(item);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                follow_sets.insert(nonterminal, local_follow_set);
+            }
+
+            if old_follows == follow_sets {
+                break;
+            }
+        }
+
+        follow_sets
+    }
 }
+
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub enum FollowItem {
+    EndOfInput,
+    Id(Identifier),
+}
+
+pub type FollowSet = HashSet<FollowItem>;
 
 pub enum AddIdentifierStatus {
     Success,

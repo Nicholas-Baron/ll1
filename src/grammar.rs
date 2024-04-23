@@ -232,7 +232,6 @@ pub struct GrammarBuilder {
     terminals: HashSet<Identifier>,
     non_terminals: HashMap<Identifier, RuleOption>,
     starting_id: Option<Identifier>,
-    identifier_map: IdentifierMap,
 }
 
 impl GrammarBuilder {
@@ -243,12 +242,11 @@ impl GrammarBuilder {
     }
 
     /// Returns `None` if there is no starting id
-    pub fn build(self) -> Option<Grammar> {
+    pub fn build(self, identifier_map: IdentifierMap) -> Option<Grammar> {
         let Self {
             terminals,
             non_terminals,
             starting_id,
-            identifier_map,
         } = self;
 
         Some(Grammar {
@@ -257,14 +255,6 @@ impl GrammarBuilder {
             starting_id: starting_id?,
             identifier_map,
         })
-    }
-
-    pub fn text_for(&self, i: Identifier) -> &str {
-        self.identifier_map.text_for(i)
-    }
-
-    pub fn identifier_map(&mut self, identifier_map: IdentifierMap) {
-        self.identifier_map = identifier_map;
     }
 
     pub fn add_terminal(&mut self, id: Identifier) -> AddIdentifierStatus {

@@ -183,10 +183,7 @@ impl Parser {
         }
 
         self.grammar_builder
-            .identifier_map(self.tokenizer.identifier_map());
-
-        self.grammar_builder
-            .build()
+            .build(self.tokenizer.identifier_map())
             .ok_or(ParserError::NoStartingId)
     }
 

@@ -33,10 +33,10 @@ impl RuleOption {
         }
     }
 
-    fn first_set(&self) -> HashSet<Option<Identifier>> {
+    fn first_set(&self) -> FirstSet {
         match self {
-            RuleOption::Empty => [None].into(),
-            RuleOption::Id(id) => [Some(id.clone())].into(),
+            RuleOption::Empty => [FirstItem::Empty].into(),
+            RuleOption::Id(id) => [FirstItem::Id(id.clone())].into(),
             RuleOption::Sequence { contents } => contents[0].first_set(),
             RuleOption::Alternates { contents } => contents
                 .iter()
@@ -65,16 +65,12 @@ impl RuleOption {
                     slice = &slice[idx + 1..];
 
                     if let Some(next) = slice.first() {
-                        for item in next.first_set() {
-                            match item {
-                                Some(id) => {
-                                    local_follow_set.insert(FollowItem::Id(id));
-                                }
-                                None => {
-                                    local_follow_set.insert(FollowItem::EndOfInput);
-                                }
-                            }
-                        }
+                        local_follow_set.extend(next.first_set().into_iter().map(
+                            |item| match item {
+                                FirstItem::Id(id) => FollowItem::Id(id),
+                                FirstItem::Empty => FollowItem::EndOfInput,
+                            },
+                        ));
                     } else {
                         local_follow_set.insert(FollowItem::EndOfInput);
                     }
@@ -96,8 +92,7 @@ impl RuleOption {
 
 #[cfg(test)]
 mod rule_tests {
-    use super::Identifier;
-    use super::RuleOption;
+    use super::*;
 
     #[test]
     fn identifiers_used() {
@@ -133,7 +128,12 @@ mod rule_tests {
                 ])
             }
             .first_set(),
-            [None, Some(id1.clone()), Some(id2.clone())].into()
+            [
+                FirstItem::Empty,
+                FirstItem::Id(id1.clone()),
+                FirstItem::Id(id2.clone())
+            ]
+            .into()
         );
 
         assert_eq!(
@@ -141,7 +141,7 @@ mod rule_tests {
                 contents: Box::new([RuleOption::Id(id1.clone()), RuleOption::Id(id2.clone())])
             }
             .first_set(),
-            [Some(id1)].into()
+            [FirstItem::Id(id1)].into()
         );
     }
 }
@@ -218,8 +218,8 @@ impl Grammar {
         reachable_symbols
     }
 
-    pub fn first_sets(&self) -> HashMap<Identifier, HashSet<Option<Identifier>>> {
-        let mut first_sets: HashMap<_, HashSet<_>> = HashMap::new();
+    pub fn first_sets(&self) -> HashMap<Identifier, FirstSet> {
+        let mut first_sets: HashMap<_, FirstSet> = HashMap::new();
 
         use std::collections::VecDeque;
         let mut to_process: VecDeque<_> = self.non_terminals.keys().cloned().collect();
@@ -233,7 +233,7 @@ impl Grammar {
                 .expect("should be nonterminal")
                 .first_set()
             {
-                let Some(ref id) = symbol else {
+                let FirstItem::Id(ref id) = symbol else {
                     first_set.insert(symbol);
                     continue;
                 };
@@ -295,10 +295,10 @@ impl Grammar {
 
                         for item in firsts {
                             match item {
-                                Some(id) => {
+                                FirstItem::Id(id) => {
                                     local_follow_set.insert(FollowItem::Id(id.clone()));
                                 }
-                                None => add_current_to(&mut local_follow_set),
+                                FirstItem::Empty => add_current_to(&mut local_follow_set),
                             }
                         }
                     }
@@ -315,6 +315,23 @@ impl Grammar {
         follow_sets
     }
 }
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub enum FirstItem {
+    Empty,
+    Id(Identifier),
+}
+
+impl FirstItem {
+    pub fn printable<'gram>(&self, grammar: &'gram Grammar) -> &'gram str {
+        match self {
+            FirstItem::Empty => "empty",
+            FirstItem::Id(id) => grammar.text_for(id.clone()),
+        }
+    }
+}
+
+pub type FirstSet = HashSet<FirstItem>;
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub enum FollowItem {

@@ -79,7 +79,7 @@ fn main() {
             user_grammar.text_for(nonterminal),
             first_set
                 .into_iter()
-                .map(|sym| sym.map_or("empty", |id| user_grammar.text_for(id)))
+                .map(|sym| sym.printable(&user_grammar))
                 .collect::<Vec<_>>()
                 .join(", ")
         );

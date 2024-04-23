@@ -100,3 +100,26 @@ fn main() {
         );
     }
 }
+
+#[cfg(test)]
+mod integration_tests {
+    use super::*;
+
+    #[test]
+    fn firsts_are_all_nonterminal() {
+        let raw_input = include_str!("../examples/simple.txt");
+        let parser = Parser::new(Tokenizer::from(raw_input.to_string()));
+        let grammar = parser.parse().unwrap();
+
+        let firsts = grammar.first_sets();
+        assert_eq!(firsts.len(), 2);
+
+        for nonterminal in grammar.nonterminal_symbols() {
+            assert!(firsts.contains_key(&nonterminal));
+        }
+
+        for terminal in grammar.terminal_symbols() {
+            assert!(!firsts.contains_key(&terminal));
+        }
+    }
+}

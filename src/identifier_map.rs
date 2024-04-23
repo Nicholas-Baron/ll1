@@ -1,6 +1,13 @@
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct Identifier(usize);
 
+#[cfg(test)]
+impl Identifier {
+    pub fn mock_id(id: usize) -> Self {
+        Self(id)
+    }
+}
+
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct IdentifierMap(Vec<String>);
 

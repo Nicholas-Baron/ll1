@@ -50,6 +50,58 @@ impl RuleOption {
     }
 }
 
+#[cfg(test)]
+mod rule_tests {
+    use super::Identifier;
+    use super::RuleOption;
+
+    #[test]
+    fn identifiers_used() {
+        assert!(RuleOption::Empty.identifiers().is_empty());
+        let id = Identifier::mock_id(0);
+        let id_rule = RuleOption::Id(id.clone());
+        assert_eq!(id_rule.identifiers(), [id.clone()].into());
+
+        assert_eq!(
+            RuleOption::Sequence {
+                contents: Box::new([RuleOption::Id(id.clone()), RuleOption::Id(id.clone())])
+            }
+            .identifiers(),
+            id_rule.identifiers()
+        );
+
+        assert_eq!(
+            RuleOption::Optional(Box::new(RuleOption::Id(id.clone()))).identifiers(),
+            RuleOption::Id(id.clone()).identifiers()
+        );
+    }
+
+    #[test]
+    fn first_set() {
+        let id1 = Identifier::mock_id(1);
+        let id2 = Identifier::mock_id(2);
+        assert_eq!(
+            RuleOption::Alternates {
+                contents: Box::new([
+                    RuleOption::Empty,
+                    RuleOption::Id(id1.clone()),
+                    RuleOption::Id(id2.clone())
+                ])
+            }
+            .first_set(),
+            [None, Some(id1.clone()), Some(id2.clone())].into()
+        );
+
+        assert_eq!(
+            RuleOption::Sequence {
+                contents: Box::new([RuleOption::Id(id1.clone()), RuleOption::Id(id2.clone())])
+            }
+            .first_set(),
+            [Some(id1)].into()
+        );
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Grammar {
     terminals: HashSet<Identifier>,

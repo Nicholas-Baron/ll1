@@ -76,7 +76,7 @@ impl Parser {
     pub fn new(tokenizer: Tokenizer) -> Self {
         Self {
             tokenizer,
-            grammar_builder: GrammarBuilder::default(),
+            grammar_builder: Grammar::builder(),
             peeked_token: None,
         }
     }

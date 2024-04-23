@@ -59,7 +59,7 @@ pub struct Grammar {
 }
 
 impl Grammar {
-    fn builder() -> GrammarBuilder {
+    pub fn builder() -> GrammarBuilder {
         GrammarBuilder::default()
     }
 

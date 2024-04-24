@@ -33,23 +33,38 @@ impl RuleOption {
         }
     }
 
-    fn first_set(&self) -> FirstSet {
+    fn first_set(&self, resolved_sets: &HashMap<Identifier, FirstSet>) -> FirstSet {
         match self {
             RuleOption::Empty => [FirstItem::Empty].into(),
-            RuleOption::Id(id) => [FirstItem::Id(id.clone())].into(),
-            RuleOption::Sequence { contents } => contents[0].first_set(),
-            RuleOption::Alternates { contents } => contents
-                .iter()
-                .map(RuleOption::first_set)
-                .fold(Default::default(), |acc, item| {
-                    acc.union(&item).cloned().collect()
-                }),
+            RuleOption::Id(id) => resolved_sets
+                .get(id)
+                .cloned()
+                .unwrap_or([FirstItem::Id(id.clone())].into()),
+            RuleOption::Sequence { contents } => {
+                let mut idx = 0;
+                let mut first_set = contents[idx].first_set(resolved_sets);
+                while first_set.contains(&FirstItem::Empty) && contents.len() > idx {
+                    first_set.remove(&FirstItem::Empty);
+                    first_set.extend(contents[idx].first_set(resolved_sets));
+                    idx += 1;
+                }
+                first_set
+            }
+            RuleOption::Alternates { contents } => {
+                contents.iter().fold(Default::default(), |acc, item| {
+                    acc.union(&item.first_set(resolved_sets)).cloned().collect()
+                })
+            }
             RuleOption::Optional(_) => todo!(),
             RuleOption::Repetition(_) => todo!(),
         }
     }
 
-    fn local_follows(&self, nonterminal: &Identifier) -> FollowSet {
+    fn local_follows(
+        &self,
+        nonterminal: &Identifier,
+        first_sets: &HashMap<Identifier, FirstSet>,
+    ) -> FollowSet {
         match self {
             RuleOption::Empty => [].into(),
             RuleOption::Id(id) => (id == nonterminal)
@@ -65,7 +80,7 @@ impl RuleOption {
                     slice = &slice[idx + 1..];
 
                     if let Some(next) = slice.first() {
-                        local_follow_set.extend(next.first_set().into_iter().map(
+                        local_follow_set.extend(next.first_set(first_sets).into_iter().map(
                             |item| match item {
                                 FirstItem::Id(id) => FollowItem::Id(id),
                                 FirstItem::Empty => FollowItem::EndOfInput,
@@ -80,7 +95,7 @@ impl RuleOption {
             }
             RuleOption::Alternates { contents } => contents
                 .iter()
-                .map(|item| item.local_follows(nonterminal))
+                .map(|item| item.local_follows(nonterminal, first_sets))
                 .fold(FollowSet::new(), |acc, item| {
                     acc.union(&item).cloned().collect()
                 }),
@@ -127,7 +142,7 @@ mod rule_tests {
                     RuleOption::Id(id2.clone())
                 ])
             }
-            .first_set(),
+            .first_set(&Default::default()),
             [
                 FirstItem::Empty,
                 FirstItem::Id(id1.clone()),
@@ -140,7 +155,7 @@ mod rule_tests {
             RuleOption::Sequence {
                 contents: Box::new([RuleOption::Id(id1.clone()), RuleOption::Id(id2.clone())])
             }
-            .first_set(),
+            .first_set(&Default::default()),
             [FirstItem::Id(id1)].into()
         );
     }
@@ -231,7 +246,7 @@ impl Grammar {
                 .non_terminals
                 .get(&non_term)
                 .expect("should be nonterminal")
-                .first_set()
+                .first_set(&first_sets)
             {
                 let FirstItem::Id(ref id) = symbol else {
                     first_set.insert(symbol);
@@ -282,7 +297,7 @@ impl Grammar {
                         }
                     };
 
-                    for item in rule.local_follows(&nonterminal) {
+                    for item in rule.local_follows(&nonterminal, &first_sets) {
                         let FollowItem::Id(ref id) = item else {
                             add_current_to(&mut local_follow_set);
                             continue;

@@ -103,6 +103,35 @@ impl RuleOption {
             RuleOption::Repetition(_) => todo!(),
         }
     }
+
+    fn first_first_conflict_set(&self, all_first_sets: &HashMap<Identifier, FirstSet>) -> FirstSet {
+        match self {
+            RuleOption::Empty => Default::default(),
+            RuleOption::Id(_) => Default::default(),
+            RuleOption::Sequence { contents } => contents
+                .first()
+                .map(|item| item.first_first_conflict_set(all_first_sets))
+                .unwrap_or_default(),
+            RuleOption::Alternates { contents } => {
+                for (idx, lhs) in contents.iter().enumerate() {
+                    for rhs in contents.iter().skip(idx + 1) {
+                        let conflict_set: FirstSet = lhs
+                            .first_set(all_first_sets)
+                            .intersection(&rhs.first_set(all_first_sets))
+                            .cloned()
+                            .collect();
+                        if conflict_set.len() != 0 {
+                            return conflict_set;
+                        }
+                    }
+                }
+
+                Default::default()
+            }
+            RuleOption::Optional(_) => todo!(),
+            RuleOption::Repetition(_) => todo!(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -328,6 +357,17 @@ impl Grammar {
         }
 
         follow_sets
+    }
+
+    pub fn first_first_conflicts(&self) -> HashMap<Identifier, HashSet<FirstItem>> {
+        let first_sets = self.first_sets();
+        self.non_terminals
+            .iter()
+            .filter_map(|(id, rule)| {
+                let conflict_set = rule.first_first_conflict_set(&first_sets);
+                (!conflict_set.is_empty()).then(|| (id.clone(), conflict_set))
+            })
+            .collect()
     }
 }
 

@@ -99,6 +99,18 @@ fn main() {
                 .join(", ")
         );
     }
+
+    for (nonterminal, conflict_set) in user_grammar.first_first_conflicts() {
+        println!(
+            "First/First Conflict in {} on {{ {} }}",
+            user_grammar.text_for(nonterminal),
+            conflict_set
+                .into_iter()
+                .map(|sym| sym.printable(&user_grammar))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
 }
 
 #[cfg(test)]

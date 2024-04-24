@@ -1,0 +1,11 @@
+terminal a b;
+
+start s;
+
+s : e 
+  | e a
+  ;
+
+e : b
+  | %empty
+  ;

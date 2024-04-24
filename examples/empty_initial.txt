@@ -1,0 +1,10 @@
+start s;
+
+terminal t u;
+
+s : r u
+  ;
+
+r : %empty
+  | t
+  ;

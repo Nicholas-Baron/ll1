@@ -362,6 +362,43 @@ impl Grammar {
             })
             .collect()
     }
+
+    pub fn first_follow_conflicts(&self) -> HashMap<Identifier, HashSet<Identifier>> {
+        let follow_sets = self.follow_sets();
+        self.first_sets()
+            .into_iter()
+            .filter(|(_, firsts)| firsts.contains(&FirstItem::Empty))
+            .filter_map(|(nonterm, firsts)| {
+                let follows = follow_sets
+                    .get(&nonterm)
+                    .expect("Nonterminal should have a follow set");
+
+                let first_ids: HashSet<Identifier> = firsts
+                    .into_iter()
+                    .filter_map(|item| match item {
+                        FirstItem::Empty => None,
+                        FirstItem::Id(id) => Some(id),
+                    })
+                    .collect();
+
+                let follow_ids: HashSet<Identifier> = follows
+                    .into_iter()
+                    .filter_map(|item| match item {
+                        FollowItem::EndOfInput => None,
+                        FollowItem::Id(id) => Some(id.clone()),
+                    })
+                    .collect();
+
+                let overlap: HashSet<_> = first_ids.intersection(&follow_ids).cloned().collect();
+
+                if overlap.is_empty() {
+                    None
+                } else {
+                    Some((nonterm, overlap))
+                }
+            })
+            .collect()
+    }
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]

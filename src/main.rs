@@ -111,6 +111,18 @@ fn main() {
                 .join(", ")
         );
     }
+
+    for (nonterminal, conflict_set) in user_grammar.first_follow_conflicts() {
+        println!(
+            "First/Follow Conflict in {} on {{ {} }}",
+            user_grammar.text_for(nonterminal),
+            conflict_set
+                .into_iter()
+                .map(|sym| user_grammar.text_for(sym))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
 }
 
 #[cfg(test)]

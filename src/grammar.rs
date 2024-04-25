@@ -319,33 +319,26 @@ impl Grammar {
             for nonterminal in self.nonterminal_symbols() {
                 let mut local_follow_set = follow_sets.remove(&nonterminal).unwrap_or_default();
 
-                for (current, rule) in &self.non_terminals {
-                    let add_current_to = |local_follow_set: &mut HashSet<FollowItem>| {
-                        if let Some(set) = follow_sets.get(current) {
-                            local_follow_set.extend(set.iter().cloned());
-                        }
+                for (current, item) in self.non_terminals.iter().flat_map(|(current, rule)| {
+                    rule.local_follows(&nonterminal, &first_sets)
+                        .into_iter()
+                        .map(move |item| (current, item))
+                }) {
+                    let FollowItem::Id(ref id) = item else {
+                        local_follow_set
+                            .extend(follow_sets.get(current).cloned().unwrap_or_default());
+                        continue;
                     };
 
-                    for item in rule.local_follows(&nonterminal, &first_sets) {
-                        let FollowItem::Id(ref id) = item else {
-                            add_current_to(&mut local_follow_set);
-                            continue;
-                        };
+                    let Some(firsts) = first_sets.get(id) else {
+                        local_follow_set.insert(item);
+                        continue;
+                    };
 
-                        let Some(firsts) = first_sets.get(id) else {
-                            local_follow_set.insert(item);
-                            continue;
-                        };
-
-                        for item in firsts {
-                            match item {
-                                FirstItem::Id(id) => {
-                                    local_follow_set.insert(FollowItem::Id(id.clone()));
-                                }
-                                FirstItem::Empty => add_current_to(&mut local_follow_set),
-                            }
-                        }
-                    }
+                    local_follow_set.extend(firsts.iter().flat_map(|item| match item {
+                        FirstItem::Id(id) => [FollowItem::Id(id.clone())].into(),
+                        FirstItem::Empty => follow_sets.get(current).cloned().unwrap_or_default(),
+                    }));
                 }
 
                 follow_sets.insert(nonterminal, local_follow_set);

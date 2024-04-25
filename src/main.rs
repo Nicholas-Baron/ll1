@@ -91,10 +91,7 @@ fn main() {
             user_grammar.text_for(nonterminal),
             follow_set
                 .into_iter()
-                .map(|sym| match sym {
-                    grammar::FollowItem::EndOfInput => "$",
-                    grammar::FollowItem::Id(id) => user_grammar.text_for(id),
-                })
+                .map(|sym| sym.printable(&user_grammar))
                 .collect::<Vec<_>>()
                 .join(", ")
         );

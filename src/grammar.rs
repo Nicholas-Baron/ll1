@@ -375,18 +375,12 @@ impl Grammar {
 
                 let first_ids: HashSet<Identifier> = firsts
                     .into_iter()
-                    .filter_map(|item| match item {
-                        FirstItem::Empty => None,
-                        FirstItem::Id(id) => Some(id),
-                    })
+                    .filter_map(FirstItem::to_identifier)
                     .collect();
 
                 let follow_ids: HashSet<Identifier> = follows
                     .iter()
-                    .filter_map(|item| match item {
-                        FollowItem::EndOfInput => None,
-                        FollowItem::Id(id) => Some(id.clone()),
-                    })
+                    .filter_map(|item| item.identifier().cloned())
                     .collect();
 
                 let overlap: HashSet<_> = first_ids.intersection(&follow_ids).cloned().collect();
@@ -414,6 +408,13 @@ impl FirstItem {
             FirstItem::Id(id) => grammar.text_for(id.clone()),
         }
     }
+
+    fn to_identifier(self) -> Option<Identifier> {
+        match self {
+            FirstItem::Empty => None,
+            FirstItem::Id(id) => Some(id),
+        }
+    }
 }
 
 pub type FirstSet = HashSet<FirstItem>;
@@ -422,6 +423,20 @@ pub type FirstSet = HashSet<FirstItem>;
 pub enum FollowItem {
     EndOfInput,
     Id(Identifier),
+}
+
+impl FollowItem {
+    pub fn printable<'gram>(&self, grammar: &'gram Grammar) -> &'gram str {
+        self.identifier()
+            .map_or("$", |id| grammar.text_for(id.clone()))
+    }
+
+    fn identifier(&self) -> Option<&Identifier> {
+        match self {
+            FollowItem::EndOfInput => None,
+            FollowItem::Id(id) => Some(id),
+        }
+    }
 }
 
 pub type FollowSet = HashSet<FollowItem>;

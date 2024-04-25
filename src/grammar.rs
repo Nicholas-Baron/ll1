@@ -120,7 +120,7 @@ impl RuleOption {
                             .intersection(&rhs.first_set(all_first_sets))
                             .cloned()
                             .collect();
-                        if conflict_set.len() != 0 {
+                        if !conflict_set.is_empty() {
                             return conflict_set;
                         }
                     }
@@ -382,7 +382,7 @@ impl Grammar {
                     .collect();
 
                 let follow_ids: HashSet<Identifier> = follows
-                    .into_iter()
+                    .iter()
                     .filter_map(|item| match item {
                         FollowItem::EndOfInput => None,
                         FollowItem::Id(id) => Some(id.clone()),

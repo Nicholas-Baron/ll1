@@ -14,16 +14,6 @@ pub enum RuleOption {
     Alternates {
         contents: Box<[RuleOption]>,
     },
-    /// `[ a ]`
-    Optional(Box<RuleOption>),
-    /// `{ a }`
-    /// Expands to ```
-    /// a more_a ;
-    /// more_a : %empty | a more_a ;
-    /// ```
-    ///
-    /// Does not cause First-First conflicts on its own
-    Repetition(Box<RuleOption>),
 }
 
 impl RuleOption {
@@ -35,7 +25,6 @@ impl RuleOption {
                 .iter()
                 .flat_map(|item| item.identifiers())
                 .collect(),
-            RuleOption::Optional(inner) | RuleOption::Repetition(inner) => inner.identifiers(),
         }
     }
 
@@ -46,9 +35,6 @@ impl RuleOption {
             RuleOption::Sequence { contents } => contents.last().unwrap().ends_with(nonterminal),
             RuleOption::Alternates { contents } => {
                 contents.iter().any(|item| item.ends_with(nonterminal))
-            }
-            RuleOption::Optional(item) | RuleOption::Repetition(item) => {
-                item.ends_with(nonterminal)
             }
         }
     }
@@ -75,8 +61,6 @@ impl RuleOption {
                     acc.union(&item.first_set(resolved_sets)).cloned().collect()
                 })
             }
-            RuleOption::Optional(_) => todo!(),
-            RuleOption::Repetition(item) => item.first_set(resolved_sets),
         }
     }
 
@@ -119,27 +103,6 @@ impl RuleOption {
                 .fold(FollowSet::new(), |acc, item| {
                     acc.union(&item).cloned().collect()
                 }),
-            RuleOption::Optional(_) => todo!(),
-            RuleOption::Repetition(contents) => {
-                let mut sub_follows = contents.local_follows(nonterminal, first_sets);
-
-                if contents.ends_with(nonterminal) {
-                    for item in contents.first_set(first_sets) {
-                        if let Some(overlap) = sub_follows.iter().find_map(|follow| {
-                            match (item.as_identifier(), follow.identifier()) {
-                                (None, _) | (_, None) => None,
-                                (Some(first), Some(follow)) => (first == follow).then_some(first),
-                            }
-                        }) {
-                            println!("Overlap found: {overlap:?}");
-                        }
-
-                        sub_follows.insert(FollowItem::Id(item.into_identifier().unwrap()));
-                    }
-                }
-
-                sub_follows
-            }
         }
     }
 
@@ -167,8 +130,6 @@ impl RuleOption {
 
                 Default::default()
             }
-            RuleOption::Optional(_) => todo!(),
-            RuleOption::Repetition(_) => Default::default(),
         }
     }
 }
@@ -190,11 +151,6 @@ mod rule_tests {
             }
             .identifiers(),
             id_rule.identifiers()
-        );
-
-        assert_eq!(
-            RuleOption::Optional(Box::new(RuleOption::Id(id.clone()))).identifiers(),
-            RuleOption::Id(id.clone()).identifiers()
         );
     }
 

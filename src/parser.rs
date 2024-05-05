@@ -392,9 +392,17 @@ mod tests {
         let grammar = grammar.unwrap();
 
         let terminal = grammar.terminal_symbols().next().unwrap();
+        let pseudo_nonterminal = grammar
+            .nonterminal_symbols()
+            .find(|id| grammar.text_for(id.clone()).starts_with("pseudo"))
+            .unwrap();
+
         assert_eq!(
             grammar.starting_rule(),
-            Some(RuleOption::Repetition(Box::new(RuleOption::Id(terminal)))).as_ref()
+            Some(RuleOption::Sequence {
+                contents: Box::new([RuleOption::Id(terminal), RuleOption::Id(pseudo_nonterminal)])
+            })
+            .as_ref()
         );
     }
 
@@ -422,10 +430,13 @@ mod tests {
         assert!(grammar.is_ok());
         let grammar = grammar.unwrap();
 
-        let terminal = grammar.terminal_symbols().next().unwrap();
+        let pseudo_nonterminal = grammar
+            .nonterminal_symbols()
+            .find(|id| grammar.text_for(id.clone()).starts_with("pseudo"))
+            .unwrap();
         assert_eq!(
             grammar.starting_rule(),
-            Some(RuleOption::Optional(Box::new(RuleOption::Id(terminal)))).as_ref()
+            Some(RuleOption::Id(pseudo_nonterminal)).as_ref()
         );
     }
 

@@ -28,17 +28,6 @@ impl RuleOption {
         }
     }
 
-    fn ends_with(&self, nonterminal: &Identifier) -> bool {
-        match self {
-            RuleOption::Empty => false,
-            RuleOption::Id(id) => nonterminal == id,
-            RuleOption::Sequence { contents } => contents.last().unwrap().ends_with(nonterminal),
-            RuleOption::Alternates { contents } => {
-                contents.iter().any(|item| item.ends_with(nonterminal))
-            }
-        }
-    }
-
     fn first_set(&self, resolved_sets: &HashMap<Identifier, FirstSet>) -> FirstSet {
         match self {
             RuleOption::Empty => [FirstItem::Empty].into(),

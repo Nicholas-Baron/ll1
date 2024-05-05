@@ -375,7 +375,7 @@ impl Grammar {
 
                 let first_ids: HashSet<Identifier> = firsts
                     .into_iter()
-                    .filter_map(FirstItem::to_identifier)
+                    .filter_map(FirstItem::into_identifier)
                     .collect();
 
                 let follow_ids: HashSet<Identifier> = follows
@@ -409,7 +409,7 @@ impl FirstItem {
         }
     }
 
-    fn to_identifier(self) -> Option<Identifier> {
+    fn into_identifier(self) -> Option<Identifier> {
         match self {
             FirstItem::Empty => None,
             FirstItem::Id(id) => Some(id),

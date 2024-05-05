@@ -27,6 +27,10 @@ impl FromIterator<char> for Tokenizer {
 }
 
 impl Tokenizer {
+    pub fn add_fake_id(&mut self, text: String) -> Identifier {
+        self.identifiers.add_identifier(text)
+    }
+
     fn remove_whitespace(&mut self) {
         while self.input.front().is_some_and(|c| c.is_whitespace()) {
             self.input.pop_front();

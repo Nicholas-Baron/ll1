@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::identifier_map::{Identifier, IdentifierMap};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum RuleOption {
     Empty,
     Id(Identifier),

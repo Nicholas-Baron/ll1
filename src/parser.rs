@@ -305,7 +305,16 @@ impl Parser {
             Token::LCurly => {
                 let inner = self.parse_rhs()?;
                 self.consume_expected(Some(Token::RCurly))?;
-                Ok(RuleOption::Repetition(Box::new(inner)))
+
+                let pseudo_rule = RuleOption::Alternates {
+                    contents: Box::new([RuleOption::Empty, inner.clone()]),
+                };
+
+                let pseudo_id = self.add_pseudo_rule(pseudo_rule);
+
+                Ok(RuleOption::Sequence {
+                    contents: vec![inner, RuleOption::Id(pseudo_id)].into(),
+                })
             }
             Token::RCurly => todo!(),
             Token::Start => todo!(),

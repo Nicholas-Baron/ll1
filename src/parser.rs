@@ -1,5 +1,6 @@
+use crate::identifier_map::Identifier;
 use crate::{
-    grammar::{Grammar, GrammarBuilder, RuleOption},
+    grammar::{AddIdentifierStatus, Grammar, GrammarBuilder, RuleOption},
     tokenizer::Tokenizer,
     tokens::Token,
 };
@@ -73,6 +74,7 @@ pub struct Parser {
     tokenizer: Tokenizer,
     grammar_builder: GrammarBuilder,
     peeked_token: Option<Token>,
+    pseudo_rule_count: u32,
 }
 
 type ParserResult<T> = Result<T, ParserError>;
@@ -83,7 +85,23 @@ impl Parser {
             tokenizer,
             grammar_builder: Grammar::builder(),
             peeked_token: None,
+            pseudo_rule_count: 0,
         }
+    }
+
+    fn add_pseudo_rule(&mut self, rule: RuleOption) -> Identifier {
+        let pseudo_id = self
+            .tokenizer
+            .add_fake_id(format!("pseudo rule {}", self.pseudo_rule_count));
+        self.pseudo_rule_count += 1;
+
+        match self.grammar_builder.add_rule(pseudo_id.clone(), rule) {
+            AddIdentifierStatus::Success => {}
+            AddIdentifierStatus::DuplicateTerminal => todo!(),
+            AddIdentifierStatus::DuplicateNonTerminal => todo!(),
+        }
+
+        pseudo_id
     }
 
     fn consume_expected(&mut self, expected: Option<Token>) -> ParserResult<()> {
@@ -274,7 +292,12 @@ impl Parser {
             Token::LBracket => {
                 let inner = self.parse_rhs()?;
                 self.consume_expected(Some(Token::RBracket))?;
-                Ok(RuleOption::Optional(Box::new(inner)))
+
+                let pseudo_rule = RuleOption::Alternates {
+                    contents: Box::new([RuleOption::Empty, inner]),
+                };
+
+                Ok(RuleOption::Id(self.add_pseudo_rule(pseudo_rule)))
             }
             Token::RBracket => todo!(),
             Token::LParen => todo!(),

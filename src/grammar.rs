@@ -17,6 +17,12 @@ pub enum RuleOption {
     /// `[ a ]`
     Optional(Box<RuleOption>),
     /// `{ a }`
+    /// Expands to ```
+    /// a more_a ;
+    /// more_a : %empty | a more_a ;
+    /// ```
+    ///
+    /// Does not cause First-First conflicts on its own
     Repetition(Box<RuleOption>),
 }
 
@@ -100,7 +106,7 @@ impl RuleOption {
                     acc.union(&item).cloned().collect()
                 }),
             RuleOption::Optional(_) => todo!(),
-            RuleOption::Repetition(_) => todo!(),
+            RuleOption::Repetition(contents) => contents.local_follows(nonterminal, first_sets),
         }
     }
 
@@ -129,7 +135,7 @@ impl RuleOption {
                 Default::default()
             }
             RuleOption::Optional(_) => todo!(),
-            RuleOption::Repetition(_) => todo!(),
+            RuleOption::Repetition(_) => Default::default(),
         }
     }
 }

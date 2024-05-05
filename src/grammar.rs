@@ -56,7 +56,7 @@ impl RuleOption {
                 })
             }
             RuleOption::Optional(_) => todo!(),
-            RuleOption::Repetition(_) => todo!(),
+            RuleOption::Repetition(item) => item.first_set(resolved_sets),
         }
     }
 

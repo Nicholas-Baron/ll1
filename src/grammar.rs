@@ -39,6 +39,20 @@ impl RuleOption {
         }
     }
 
+    fn ends_with(&self, nonterminal: &Identifier) -> bool {
+        match self {
+            RuleOption::Empty => false,
+            RuleOption::Id(id) => nonterminal == id,
+            RuleOption::Sequence { contents } => contents.last().unwrap().ends_with(nonterminal),
+            RuleOption::Alternates { contents } => {
+                contents.iter().any(|item| item.ends_with(nonterminal))
+            }
+            RuleOption::Optional(item) | RuleOption::Repetition(item) => {
+                item.ends_with(nonterminal)
+            }
+        }
+    }
+
     fn first_set(&self, resolved_sets: &HashMap<Identifier, FirstSet>) -> FirstSet {
         match self {
             RuleOption::Empty => [FirstItem::Empty].into(),
@@ -107,15 +121,20 @@ impl RuleOption {
                 }),
             RuleOption::Optional(_) => todo!(),
             RuleOption::Repetition(contents) => {
-                let sub_follows = contents.local_follows(nonterminal, first_sets);
-                for item in contents.first_set(first_sets) {
-                    if let Some(overlap) = sub_follows.iter().find_map(|follow| {
-                        match (item.as_identifier(), follow.identifier()) {
-                            (None, _) | (_, None) => None,
-                            (Some(first), Some(follow)) => (first == follow).then_some(first),
+                let mut sub_follows = contents.local_follows(nonterminal, first_sets);
+
+                if contents.ends_with(nonterminal) {
+                    for item in contents.first_set(first_sets) {
+                        if let Some(overlap) = sub_follows.iter().find_map(|follow| {
+                            match (item.as_identifier(), follow.identifier()) {
+                                (None, _) | (_, None) => None,
+                                (Some(first), Some(follow)) => (first == follow).then_some(first),
+                            }
+                        }) {
+                            println!("Overlap found: {overlap:?}");
                         }
-                    }) {
-                        println!("Overlap found: {overlap:?}");
+
+                        sub_follows.insert(FollowItem::Id(item.into_identifier().unwrap()));
                     }
                 }
 

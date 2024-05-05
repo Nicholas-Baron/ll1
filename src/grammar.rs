@@ -106,7 +106,21 @@ impl RuleOption {
                     acc.union(&item).cloned().collect()
                 }),
             RuleOption::Optional(_) => todo!(),
-            RuleOption::Repetition(contents) => contents.local_follows(nonterminal, first_sets),
+            RuleOption::Repetition(contents) => {
+                let sub_follows = contents.local_follows(nonterminal, first_sets);
+                for item in contents.first_set(first_sets) {
+                    if let Some(overlap) = sub_follows.iter().find_map(|follow| {
+                        match (item.as_identifier(), follow.identifier()) {
+                            (None, _) | (_, None) => None,
+                            (Some(first), Some(follow)) => (first == follow).then_some(first),
+                        }
+                    }) {
+                        println!("Overlap found: {overlap:?}");
+                    }
+                }
+
+                sub_follows
+            }
         }
     }
 
@@ -416,6 +430,13 @@ impl FirstItem {
     }
 
     fn into_identifier(self) -> Option<Identifier> {
+        match self {
+            FirstItem::Empty => None,
+            FirstItem::Id(id) => Some(id),
+        }
+    }
+
+    fn as_identifier(&self) -> Option<&Identifier> {
         match self {
             FirstItem::Empty => None,
             FirstItem::Id(id) => Some(id),

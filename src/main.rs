@@ -97,7 +97,12 @@ fn main() {
         );
     }
 
-    for (nonterminal, conflict_set) in user_grammar.first_first_conflicts() {
+    let first_first_conflicts = user_grammar.first_first_conflicts();
+    let first_follow_conflicts = user_grammar.first_follow_conflicts();
+
+    let has_conflicts = !first_follow_conflicts.is_empty() || !first_first_conflicts.is_empty();
+
+    for (nonterminal, conflict_set) in first_first_conflicts {
         println!(
             "First/First Conflict in {} on {{ {} }}",
             user_grammar.text_for(nonterminal),
@@ -109,7 +114,7 @@ fn main() {
         );
     }
 
-    for (nonterminal, conflict_set) in user_grammar.first_follow_conflicts() {
+    for (nonterminal, conflict_set) in first_follow_conflicts {
         println!(
             "First/Follow Conflict in {} on {{ {} }}",
             user_grammar.text_for(nonterminal),
@@ -120,6 +125,11 @@ fn main() {
                 .join(", ")
         );
     }
+
+    println!(
+        "Provided grammar is {}LL1",
+        has_conflicts.then_some("not ").unwrap_or_default()
+    );
 }
 
 #[cfg(test)]

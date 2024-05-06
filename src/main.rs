@@ -2,12 +2,49 @@ use std::path::PathBuf;
 use std::{env, fs};
 
 mod grammar;
+use grammar::Grammar;
 mod identifier_map;
 mod parser;
 use parser::Parser;
 mod tokenizer;
 mod tokens;
 use tokenizer::Tokenizer;
+
+/// Returns if anything was printed
+fn print_conflicts(user_grammar: &Grammar) -> bool {
+    let first_first_conflicts = user_grammar.first_first_conflicts();
+    let first_follow_conflicts = user_grammar.first_follow_conflicts();
+
+    let has_conflicts = !first_follow_conflicts.is_empty() || !first_first_conflicts.is_empty();
+
+    println!("\nFIRST-FIRST conflicts:");
+    for (nonterminal, conflict_set) in first_first_conflicts {
+        println!(
+            "First/First Conflict in {} on {{ {} }}",
+            user_grammar.text_for(nonterminal),
+            conflict_set
+                .into_iter()
+                .map(|sym| sym.printable(user_grammar))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
+
+    println!("\nFIRST-FOLLOW conflicts:");
+    for (nonterminal, conflict_set) in first_follow_conflicts {
+        println!(
+            "First/Follow Conflict in {} on {{ {} }}",
+            user_grammar.text_for(nonterminal),
+            conflict_set
+                .into_iter()
+                .map(|sym| user_grammar.text_for(sym))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
+
+    has_conflicts
+}
 
 fn main() {
     let filename: PathBuf = match env::args().nth(1) {
@@ -101,36 +138,7 @@ fn main() {
         );
     }
 
-    let first_first_conflicts = user_grammar.first_first_conflicts();
-    let first_follow_conflicts = user_grammar.first_follow_conflicts();
-
-    let has_conflicts = !first_follow_conflicts.is_empty() || !first_first_conflicts.is_empty();
-
-    println!("\nFIRST-FIRST conflicts:");
-    for (nonterminal, conflict_set) in first_first_conflicts {
-        println!(
-            "First/First Conflict in {} on {{ {} }}",
-            user_grammar.text_for(nonterminal),
-            conflict_set
-                .into_iter()
-                .map(|sym| sym.printable(&user_grammar))
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-    }
-
-    println!("\nFIRST-FOLLOW conflicts:");
-    for (nonterminal, conflict_set) in first_follow_conflicts {
-        println!(
-            "First/Follow Conflict in {} on {{ {} }}",
-            user_grammar.text_for(nonterminal),
-            conflict_set
-                .into_iter()
-                .map(|sym| user_grammar.text_for(sym))
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-    }
+    let has_conflicts = print_conflicts(&user_grammar);
 
     println!(
         "\nProvided grammar is {}LL1",

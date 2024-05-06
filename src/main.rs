@@ -43,6 +43,8 @@ fn main() {
         }
     };
 
+    println!("\nWarnings:");
+
     for id in user_grammar.undeclared_symbols() {
         println!(
             "Identifier {} is not explicity a terminal or nonterminal",
@@ -73,6 +75,7 @@ fn main() {
         );
     }
 
+    println!("\nFIRST Sets:");
     for (nonterminal, first_set) in user_grammar.first_sets() {
         println!(
             "FIRST({}) = {{ {} }}",
@@ -85,6 +88,7 @@ fn main() {
         );
     }
 
+    println!("\nFOLLOW Sets:");
     for (nonterminal, follow_set) in user_grammar.follow_sets() {
         println!(
             "FOLLOW({}) = {{ {} }}",
@@ -102,6 +106,7 @@ fn main() {
 
     let has_conflicts = !first_follow_conflicts.is_empty() || !first_first_conflicts.is_empty();
 
+    println!("\nFIRST-FIRST conflicts:");
     for (nonterminal, conflict_set) in first_first_conflicts {
         println!(
             "First/First Conflict in {} on {{ {} }}",
@@ -114,6 +119,7 @@ fn main() {
         );
     }
 
+    println!("\nFIRST-FOLLOW conflicts:");
     for (nonterminal, conflict_set) in first_follow_conflicts {
         println!(
             "First/Follow Conflict in {} on {{ {} }}",
@@ -127,7 +133,7 @@ fn main() {
     }
 
     println!(
-        "Provided grammar is {}LL1",
+        "\nProvided grammar is {}LL1",
         has_conflicts.then_some("not ").unwrap_or_default()
     );
 }

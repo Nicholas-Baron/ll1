@@ -1,4 +1,4 @@
-#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone, PartialOrd, Ord)]
 pub struct Identifier(usize);
 
 #[cfg(test)]

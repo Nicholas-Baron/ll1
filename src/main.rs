@@ -46,6 +46,53 @@ fn print_conflicts(user_grammar: &Grammar) -> bool {
     has_conflicts
 }
 
+fn print_first_and_follow_sets(user_grammar: &Grammar) {
+    println!("\nFIRST and FOLLOW sets");
+    let mut first_sets: Vec<_> = user_grammar.first_sets().into_iter().collect();
+    let follow_sets = user_grammar.follow_sets();
+
+    first_sets.sort_by_key(|(id, _)| id.clone());
+
+    let longest_nonterminal_name = first_sets
+        .iter()
+        .map(|(id, _)| user_grammar.text_for(id.clone()).len())
+        .max()
+        .unwrap();
+
+    for (nonterminal, first_set, follow_set) in first_sets.into_iter().map(|(id, first_set)| {
+        (
+            user_grammar.text_for(id.clone()),
+            first_set,
+            follow_sets.get(&id).cloned().unwrap_or_default(),
+        )
+    }) {
+        let space_count = longest_nonterminal_name - nonterminal.len();
+        let padding = " ".repeat(space_count + 1);
+
+        println!(
+            "FIRST ({}){}= {{ {} }}",
+            nonterminal,
+            padding,
+            first_set
+                .into_iter()
+                .map(|sym| sym.printable(&user_grammar))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+
+        println!(
+            "FOLLOW({}){}= {{ {} }}",
+            nonterminal,
+            padding,
+            follow_set
+                .into_iter()
+                .map(|sym| sym.printable(&user_grammar))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
+}
+
 fn main() {
     let filename: PathBuf = match env::args().nth(1) {
         Some(path) => PathBuf::from(path),
@@ -112,31 +159,7 @@ fn main() {
         );
     }
 
-    println!("\nFIRST Sets:");
-    for (nonterminal, first_set) in user_grammar.first_sets() {
-        println!(
-            "FIRST({}) = {{ {} }}",
-            user_grammar.text_for(nonterminal),
-            first_set
-                .into_iter()
-                .map(|sym| sym.printable(&user_grammar))
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-    }
-
-    println!("\nFOLLOW Sets:");
-    for (nonterminal, follow_set) in user_grammar.follow_sets() {
-        println!(
-            "FOLLOW({}) = {{ {} }}",
-            user_grammar.text_for(nonterminal),
-            follow_set
-                .into_iter()
-                .map(|sym| sym.printable(&user_grammar))
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-    }
+    print_first_and_follow_sets(&user_grammar);
 
     let has_conflicts = print_conflicts(&user_grammar);
 

@@ -96,8 +96,7 @@ impl RuleOption {
 
     fn first_first_conflict_set(&self, all_first_sets: &HashMap<Identifier, FirstSet>) -> FirstSet {
         match self {
-            RuleOption::Empty => Default::default(),
-            RuleOption::Id(_) => Default::default(),
+            RuleOption::Empty | RuleOption::Id(_) => Default::default(),
             RuleOption::Sequence { contents } => contents
                 .first()
                 .map(|item| item.first_first_conflict_set(all_first_sets))

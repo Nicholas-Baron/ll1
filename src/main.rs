@@ -2,7 +2,8 @@
     clippy::uninlined_format_args,
     clippy::redundant_else,
     clippy::redundant_closure_for_method_calls,
-    clippy::items_after_statements
+    clippy::items_after_statements,
+    clippy::match_same_arms
 )]
 
 use std::path::PathBuf;

@@ -3,7 +3,8 @@
     clippy::redundant_else,
     clippy::redundant_closure_for_method_calls,
     clippy::items_after_statements,
-    clippy::match_same_arms
+    clippy::match_same_arms,
+    clippy::single_match_else
 )]
 
 use std::path::PathBuf;
@@ -102,12 +103,9 @@ fn print_first_and_follow_sets(user_grammar: &Grammar) {
 }
 
 fn main() {
-    let filename: PathBuf = match env::args().nth(1) {
-        Some(path) => PathBuf::from(path),
-        None => {
-            eprintln!("No input path specified");
-            return;
-        }
+    let Some(filename) = env::args().nth(1).map(PathBuf::from) else {
+        eprintln!("No input path specified");
+        return;
     };
 
     if !filename.exists() {

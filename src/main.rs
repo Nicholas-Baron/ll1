@@ -1,3 +1,5 @@
+#![warn(clippy::uninlined_format_args)]
+
 use std::path::PathBuf;
 use std::{env, fs};
 
@@ -112,7 +114,7 @@ fn main() {
     let raw_input = match fs::read_to_string(filename) {
         Ok(data) => data,
         Err(e) => {
-            eprintln!("Error reading grammar: {}", e);
+            eprintln!("Error reading grammar: {e}");
             return;
         }
     };
@@ -122,7 +124,7 @@ fn main() {
     let user_grammar = match parser.parse() {
         Ok(g) => g,
         Err(e) => {
-            eprintln!("{}", e);
+            eprintln!("{e}");
             return;
         }
     };

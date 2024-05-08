@@ -1,7 +1,8 @@
 #![warn(
     clippy::uninlined_format_args,
     clippy::redundant_else,
-    clippy::redundant_closure_for_method_calls
+    clippy::redundant_closure_for_method_calls,
+    clippy::items_after_statements
 )]
 
 use std::path::PathBuf;

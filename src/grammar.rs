@@ -245,9 +245,10 @@ impl Grammar {
     }
 
     pub fn first_sets(&self) -> HashMap<Identifier, FirstSet> {
+        use std::collections::VecDeque;
+
         let mut first_sets: HashMap<_, FirstSet> = HashMap::new();
 
-        use std::collections::VecDeque;
         let mut to_process: VecDeque<_> = self.non_terminals.keys().cloned().collect();
 
         while let Some(non_term) = to_process.pop_front() {

@@ -187,7 +187,6 @@ impl Parser {
                 self.consume_expected(Some(Token::Colon))?;
                 let rhs = self.parse_rhs()?;
 
-                use crate::grammar::AddIdentifierStatus;
                 match self.grammar_builder.add_rule(lhs.clone(), rhs) {
                     AddIdentifierStatus::Success => {}
                     AddIdentifierStatus::DuplicateTerminal => {
@@ -255,16 +254,6 @@ impl Parser {
             }
         }
 
-        fn sequence_to_option(mut sequence: Vec<RuleOption>) -> RuleOption {
-            match sequence.len() {
-                0 => todo!(),
-                1 => sequence.pop().expect("Pop is guarded by a length check"),
-                _ => RuleOption::Sequence {
-                    contents: sequence.into_boxed_slice(),
-                },
-            }
-        }
-
         if pipe_set.is_empty() {
             Ok(sequence_to_option(current_sequence))
         } else {
@@ -319,6 +308,16 @@ impl Parser {
             Token::Empty => Ok(RuleOption::Empty),
             Token::Identifier(id) => Ok(RuleOption::Id(id)),
         }
+    }
+}
+
+fn sequence_to_option(mut sequence: Vec<RuleOption>) -> RuleOption {
+    match sequence.len() {
+        0 => todo!(),
+        1 => sequence.pop().expect("Pop is guarded by a length check"),
+        _ => RuleOption::Sequence {
+            contents: sequence.into_boxed_slice(),
+        },
     }
 }
 

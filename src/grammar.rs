@@ -238,9 +238,8 @@ impl Grammar {
 
             if extended_reachable == reachable_symbols {
                 break;
-            } else {
-                reachable_symbols = extended_reachable;
             }
+            reachable_symbols = extended_reachable;
         }
 
         reachable_symbols

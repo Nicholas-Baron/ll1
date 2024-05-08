@@ -103,14 +103,14 @@ impl Parser {
 
     fn consume_expected(&mut self, expected: Option<Token>) -> ParserResult<()> {
         let found = self.next_token();
-        if found != expected {
+        if found == expected {
+            Ok(())
+        } else {
             Err(Error::UnexpectedToken {
                 expected: expected.into_iter().collect(),
                 could_be_id: false,
                 found,
             })
-        } else {
-            Ok(())
         }
     }
 

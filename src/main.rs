@@ -7,7 +7,8 @@
     clippy::single_match_else,
     clippy::manual_assert,
     clippy::from_iter_instead_of_collect,
-    clippy::module_name_repetitions
+    clippy::module_name_repetitions,
+    clippy::if_not_else
 )]
 
 use std::path::PathBuf;

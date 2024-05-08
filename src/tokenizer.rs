@@ -13,7 +13,7 @@ pub struct Tokenizer {
 
 impl From<String> for Tokenizer {
     fn from(value: String) -> Self {
-        Self::from_iter(value.chars())
+        value.chars().collect()
     }
 }
 

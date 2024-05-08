@@ -5,7 +5,8 @@
     clippy::items_after_statements,
     clippy::match_same_arms,
     clippy::single_match_else,
-    clippy::manual_assert
+    clippy::manual_assert,
+    clippy::from_iter_instead_of_collect
 )]
 
 use std::path::PathBuf;

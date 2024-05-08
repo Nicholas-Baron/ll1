@@ -1,4 +1,4 @@
-#![warn(clippy::uninlined_format_args)]
+#![warn(clippy::uninlined_format_args, clippy::redundant_else)]
 
 use std::path::PathBuf;
 use std::{env, fs};

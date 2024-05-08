@@ -1,12 +1,12 @@
 use crate::identifier_map::Identifier;
 use crate::{
-    grammar::{AddIdentifierStatus, Grammar, GrammarBuilder, RuleOption},
+    grammar::{AddIdentifierStatus, Builder, Grammar, RuleOption},
     tokenizer::Tokenizer,
     tokens::Token,
 };
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum ParserError {
+pub enum Error {
     NoStartingId,
     DuplicateStarts {
         starts: [String; 2],
@@ -22,26 +22,26 @@ pub enum ParserError {
     ConflictingDeclaration(String),
 }
 
-impl std::fmt::Display for ParserError {
+impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ParserError::NoStartingId => f.write_str("No starting id specified"),
-            ParserError::EmptyTerminalList => {
+            Error::NoStartingId => f.write_str("No starting id specified"),
+            Error::EmptyTerminalList => {
                 f.write_str("`terminal` needs to be followed by at least 1 identifier")
             }
-            ParserError::DuplicateStarts { starts } => {
+            Error::DuplicateStarts { starts } => {
                 f.write_fmt(format_args!("Found two starts: {starts:?}"))
             }
-            ParserError::TerminalDeclaredTwice(id) => {
+            Error::TerminalDeclaredTwice(id) => {
                 f.write_fmt(format_args!("Terminal {id} was declared twice"))
             }
-            ParserError::NonterminalDeclaredTwice(id) => {
+            Error::NonterminalDeclaredTwice(id) => {
                 f.write_fmt(format_args!("Nonterminal {id} was declared twice"))
             }
-            ParserError::ConflictingDeclaration(id) => f.write_fmt(format_args!(
+            Error::ConflictingDeclaration(id) => f.write_fmt(format_args!(
                 "Id {id} was given both a nonterminal and terminal definition",
             )),
-            ParserError::UnexpectedToken {
+            Error::UnexpectedToken {
                 found,
                 expected,
                 could_be_id,
@@ -69,12 +69,12 @@ impl std::fmt::Display for ParserError {
 
 pub struct Parser {
     tokenizer: Tokenizer,
-    grammar_builder: GrammarBuilder,
+    grammar_builder: Builder,
     peeked_token: Option<Token>,
     pseudo_rule_count: u32,
 }
 
-type ParserResult<T> = Result<T, ParserError>;
+type ParserResult<T> = Result<T, Error>;
 
 impl Parser {
     pub fn new(tokenizer: Tokenizer) -> Self {
@@ -104,7 +104,7 @@ impl Parser {
     fn consume_expected(&mut self, expected: Option<Token>) -> ParserResult<()> {
         let found = self.next_token();
         if found != expected {
-            Err(ParserError::UnexpectedToken {
+            Err(Error::UnexpectedToken {
                 expected: expected.into_iter().collect(),
                 could_be_id: false,
                 found,
@@ -132,7 +132,7 @@ impl Parser {
                 let id = match self.next_token() {
                     Some(Token::Identifier(id)) => id,
                     tok => {
-                        return Err(ParserError::UnexpectedToken {
+                        return Err(Error::UnexpectedToken {
                             found: tok,
                             could_be_id: true,
                             expected: Box::new([]),
@@ -141,7 +141,7 @@ impl Parser {
                 };
 
                 if let Some(old_start) = self.grammar_builder.start(id.clone()) {
-                    return Err(ParserError::DuplicateStarts {
+                    return Err(Error::DuplicateStarts {
                         starts: [id, old_start].map(|i| self.tokenizer.text_for(i).to_string()),
                     });
                 }
@@ -154,7 +154,7 @@ impl Parser {
                         Some(Token::Semi) => break,
                         Some(Token::Identifier(id)) => new_terminals.push(id),
                         found => {
-                            return Err(ParserError::UnexpectedToken {
+                            return Err(Error::UnexpectedToken {
                                 expected: Box::new([Token::Semi]),
                                 could_be_id: true,
                                 found,
@@ -164,7 +164,7 @@ impl Parser {
                 }
 
                 if new_terminals.is_empty() {
-                    return Err(ParserError::EmptyTerminalList);
+                    return Err(Error::EmptyTerminalList);
                 }
 
                 for id in new_terminals {
@@ -172,12 +172,12 @@ impl Parser {
                     match self.grammar_builder.add_terminal(id.clone()) {
                         AddIdentifierStatus::Success => {}
                         AddIdentifierStatus::DuplicateTerminal => {
-                            return Err(ParserError::TerminalDeclaredTwice(
+                            return Err(Error::TerminalDeclaredTwice(
                                 self.tokenizer.text_for(id).to_string(),
                             ))
                         }
                         AddIdentifierStatus::DuplicateNonTerminal => {
-                            return Err(ParserError::ConflictingDeclaration(
+                            return Err(Error::ConflictingDeclaration(
                                 self.tokenizer.text_for(id).to_string(),
                             ))
                         }
@@ -190,18 +190,18 @@ impl Parser {
                 match self.grammar_builder.add_rule(lhs.clone(), rhs) {
                     AddIdentifierStatus::Success => {}
                     AddIdentifierStatus::DuplicateTerminal => {
-                        return Err(ParserError::ConflictingDeclaration(
+                        return Err(Error::ConflictingDeclaration(
                             self.tokenizer.text_for(lhs).to_string(),
                         ))
                     }
                     AddIdentifierStatus::DuplicateNonTerminal => {
-                        return Err(ParserError::NonterminalDeclaredTwice(
+                        return Err(Error::NonterminalDeclaredTwice(
                             self.tokenizer.text_for(lhs).to_string(),
                         ))
                     }
                 }
             } else {
-                return Err(ParserError::UnexpectedToken {
+                return Err(Error::UnexpectedToken {
                     expected: Box::new([Token::Start]),
                     could_be_id: true,
                     found: Some(tok),
@@ -211,7 +211,7 @@ impl Parser {
 
         self.grammar_builder
             .build(self.tokenizer.identifier_map())
-            .ok_or(ParserError::NoStartingId)
+            .ok_or(Error::NoStartingId)
     }
 
     fn parse_rhs(&mut self) -> ParserResult<RuleOption> {
@@ -238,7 +238,7 @@ impl Parser {
                     | Token::Identifier(_),
                 ) => current_sequence.push(self.parse_rhs_item()?),
                 _ => {
-                    return Err(ParserError::UnexpectedToken {
+                    return Err(Error::UnexpectedToken {
                         expected: Box::new([
                             Token::Semi,
                             Token::Pipe,
@@ -265,13 +265,11 @@ impl Parser {
     }
 
     fn parse_rhs_item(&mut self) -> ParserResult<RuleOption> {
-        match self
-            .next_token()
-            .ok_or_else(|| ParserError::UnexpectedToken {
-                expected: Box::new([Token::Empty, Token::LCurly, Token::LParen, Token::LBracket]),
-                could_be_id: true,
-                found: None,
-            })? {
+        match self.next_token().ok_or_else(|| Error::UnexpectedToken {
+            expected: Box::new([Token::Empty, Token::LCurly, Token::LParen, Token::LBracket]),
+            could_be_id: true,
+            found: None,
+        })? {
             Token::Semi => todo!(),
             Token::Pipe => todo!(),
             Token::Colon => todo!(),
@@ -329,7 +327,7 @@ mod tests {
     #[test]
     fn empty_grammar_errors() {
         let grammar = Parser::new("".to_string().into()).parse();
-        assert_eq!(grammar, Err(ParserError::NoStartingId));
+        assert_eq!(grammar, Err(Error::NoStartingId));
     }
 
     #[test]

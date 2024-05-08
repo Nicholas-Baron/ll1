@@ -21,10 +21,9 @@ impl RuleOption {
         match self {
             RuleOption::Empty => [].into(),
             RuleOption::Id(id) => [id.clone()].into(),
-            RuleOption::Alternates { contents } | RuleOption::Sequence { contents } => contents
-                .iter()
-                .flat_map(|item| item.identifiers())
-                .collect(),
+            RuleOption::Alternates { contents } | RuleOption::Sequence { contents } => {
+                contents.iter().flat_map(RuleOption::identifiers).collect()
+            }
         }
     }
 
@@ -215,7 +214,7 @@ impl Grammar {
         let all_components: HashSet<_> = self
             .non_terminals
             .values()
-            .flat_map(|opt| opt.identifiers())
+            .flat_map(RuleOption::identifiers)
             .collect();
 
         all_components

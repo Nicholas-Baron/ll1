@@ -77,7 +77,7 @@ fn print_first_and_follow_sets(user_grammar: &Grammar) {
             padding,
             first_set
                 .into_iter()
-                .map(|sym| sym.printable(&user_grammar))
+                .map(|sym| sym.printable(user_grammar))
                 .collect::<Vec<_>>()
                 .join(", ")
         );
@@ -88,7 +88,7 @@ fn print_first_and_follow_sets(user_grammar: &Grammar) {
             padding,
             follow_set
                 .into_iter()
-                .map(|sym| sym.printable(&user_grammar))
+                .map(|sym| sym.printable(user_grammar))
                 .collect::<Vec<_>>()
                 .join(", ")
         );

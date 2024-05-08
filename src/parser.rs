@@ -30,40 +30,37 @@ impl std::fmt::Display for ParserError {
                 f.write_str("`terminal` needs to be followed by at least 1 identifier")
             }
             ParserError::DuplicateStarts { starts } => {
-                f.write_fmt(format_args!("Found two starts: {:?}", starts))
+                f.write_fmt(format_args!("Found two starts: {starts:?}"))
             }
             ParserError::TerminalDeclaredTwice(id) => {
-                f.write_fmt(format_args!("Terminal {} was declared twice", id))
+                f.write_fmt(format_args!("Terminal {id} was declared twice"))
             }
             ParserError::NonterminalDeclaredTwice(id) => {
-                f.write_fmt(format_args!("Nonterminal {} was declared twice", id))
+                f.write_fmt(format_args!("Nonterminal {id} was declared twice"))
             }
             ParserError::ConflictingDeclaration(id) => f.write_fmt(format_args!(
-                "Id {} was given both a nonterminal and terminal definition",
-                id,
+                "Id {id} was given both a nonterminal and terminal definition",
             )),
             ParserError::UnexpectedToken {
                 found,
                 expected,
                 could_be_id,
             } => match (expected.len(), could_be_id) {
-                (0, true) => f.write_fmt(format_args!("Expected an identifier; Found {:?}", found)),
-                (0, false) => f.write_fmt(format_args!("Expected end of input; Found {:?}", found)),
+                (0, true) => f.write_fmt(format_args!("Expected an identifier; Found {found:?}")),
+                (0, false) => f.write_fmt(format_args!("Expected end of input; Found {found:?}")),
                 (1, _) => f.write_fmt(format_args!(
-                    "Expected {:?}{}; Found {:?}",
+                    "Expected {:?}{}; Found {found:?}",
                     expected[0],
                     could_be_id
                         .then_some("or an identifier")
                         .unwrap_or_default(),
-                    found
                 )),
                 (_, _) => f.write_fmt(format_args!(
-                    "Expected one of {:?}{}; Found {:?}",
+                    "Expected one of {:?}{}; Found {found:?}",
                     expected,
                     could_be_id
                         .then_some("or an identifier")
                         .unwrap_or_default(),
-                    found
                 )),
             },
         }

@@ -181,8 +181,8 @@ pub struct Grammar {
 }
 
 impl Grammar {
-    pub fn builder() -> GrammarBuilder {
-        GrammarBuilder::default()
+    pub fn builder() -> Builder {
+        Builder::default()
     }
 
     pub fn starting_rule(&self) -> Option<&RuleOption> {
@@ -437,13 +437,13 @@ pub enum AddIdentifierStatus {
 }
 
 #[derive(Default)]
-pub struct GrammarBuilder {
+pub struct Builder {
     terminals: HashSet<Identifier>,
     non_terminals: HashMap<Identifier, RuleOption>,
     starting_id: Option<Identifier>,
 }
 
-impl GrammarBuilder {
+impl Builder {
     pub fn start(&mut self, new_start: Identifier) -> Option<Identifier> {
         let old_start = self.starting_id.take();
         self.starting_id = Some(new_start);

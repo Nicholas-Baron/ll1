@@ -102,14 +102,13 @@ impl Iterator for Tokenizer {
                 let mut expected = "empty".chars();
 
                 while let (Some(c), Some(expect)) = (self.input.pop_front(), expected.next()) {
-                    if c != expect {
-                        panic!("'%' can only start a '%empty'");
-                    }
+                    assert_eq!(c, expect, "'%' can only start a '%empty'");
                 }
 
-                if self.input.front().is_some_and(|c| is_word_character(*c)) {
-                    panic!("'%' can only start a '%empty'");
-                }
+                assert!(
+                    self.input.front().is_some_and(|c| is_word_character(*c)),
+                    "'%' can only start a '%empty'"
+                );
 
                 Some(Token::Empty)
             }

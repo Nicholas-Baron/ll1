@@ -4,7 +4,8 @@
     clippy::redundant_closure_for_method_calls,
     clippy::items_after_statements,
     clippy::match_same_arms,
-    clippy::single_match_else
+    clippy::single_match_else,
+    clippy::manual_assert
 )]
 
 use std::path::PathBuf;

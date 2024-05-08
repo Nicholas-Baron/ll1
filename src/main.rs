@@ -1,14 +1,14 @@
 #![warn(
-    clippy::uninlined_format_args,
-    clippy::redundant_else,
-    clippy::redundant_closure_for_method_calls,
-    clippy::items_after_statements,
-    clippy::match_same_arms,
-    clippy::single_match_else,
-    clippy::manual_assert,
     clippy::from_iter_instead_of_collect,
+    clippy::if_not_else,
+    clippy::items_after_statements,
+    clippy::manual_assert,
+    clippy::match_same_arms,
     clippy::module_name_repetitions,
-    clippy::if_not_else
+    clippy::redundant_closure_for_method_calls,
+    clippy::redundant_else,
+    clippy::single_match_else,
+    clippy::uninlined_format_args
 )]
 
 use std::path::PathBuf;

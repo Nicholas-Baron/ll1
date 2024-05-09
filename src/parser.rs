@@ -284,7 +284,12 @@ impl Parser {
                 Ok(RuleOption::Id(self.add_pseudo_rule(pseudo_rule)))
             }
             Token::RBracket => todo!(),
-            Token::LParen => todo!(),
+            Token::LParen => {
+                let contents = self.parse_rhs()?;
+                self.consume_expected(Some(Token::RParen))?;
+
+                Ok(RuleOption::Id(self.add_pseudo_rule(contents)))
+            }
             Token::RParen => todo!(),
             Token::LCurly => {
                 let inner = self.parse_rhs()?;

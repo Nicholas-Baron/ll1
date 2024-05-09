@@ -137,7 +137,7 @@ fn main() {
         }
     };
 
-    println!("\nWarnings:");
+    println!("\n{user_grammar}\nWarnings:");
 
     for id in user_grammar.undeclared_symbols() {
         println!(

@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+};
 
 use crate::identifier_map::{Identifier, IdentifierMap};
 
@@ -119,6 +122,23 @@ impl RuleOption {
             }
         }
     }
+
+    fn printable(&self, id_map: &IdentifierMap) -> String {
+        match self {
+            RuleOption::Empty => "%empty".to_owned(),
+            RuleOption::Id(id) => id_map.text_for(id.clone()).to_owned(),
+            RuleOption::Sequence { contents } => contents
+                .iter()
+                .map(|item| item.printable(id_map))
+                .collect::<Vec<_>>()
+                .join(" "),
+            RuleOption::Alternates { contents } => contents
+                .iter()
+                .map(|item| item.printable(id_map))
+                .collect::<Vec<_>>()
+                .join(" | "),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -178,6 +198,35 @@ pub struct Grammar {
     non_terminals: HashMap<Identifier, RuleOption>,
     starting_id: Identifier,
     identifier_map: IdentifierMap,
+}
+
+impl Display for Grammar {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut rule_names: Vec<(Identifier, &str)> = self
+            .nonterminal_symbols()
+            .map(|sym| (sym.clone(), self.identifier_map.text_for(sym)))
+            .collect();
+
+        rule_names.sort_unstable_by_key(|(_, name)| name.to_owned());
+
+        f.write_fmt(format_args!(
+            "Starting rule: {}\n",
+            rule_names
+                .iter()
+                .find_map(|(id, name)| (*id == self.starting_id).then_some(name))
+                .unwrap()
+        ))?;
+
+        for (id, name) in rule_names {
+            let rule = self.non_terminals.get(&id).unwrap();
+
+            let printable_rule = rule.printable(&self.identifier_map);
+
+            f.write_fmt(format_args!("{name} : {printable_rule}\n"))?;
+        }
+
+        Ok(())
+    }
 }
 
 impl Grammar {

@@ -105,10 +105,9 @@ impl Iterator for Tokenizer {
                     assert_eq!(c, expect, "'%' can only start a '%empty'");
                 }
 
-                assert!(
-                    self.input.front().is_some_and(|c| is_word_character(*c)),
-                    "'%' can only start a '%empty'"
-                );
+                if let Some(missing) = expected.next() {
+                    panic!("'%' can only start '%empty' (missed {missing})");
+                }
 
                 Some(Token::Empty)
             }

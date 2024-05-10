@@ -288,7 +288,7 @@ impl Parser {
                 let contents = self.parse_rhs()?;
                 self.consume_expected(Some(Token::RParen))?;
 
-                Ok(RuleOption::Id(self.add_pseudo_rule(contents)))
+                Ok(contents)
             }
             Token::RParen => todo!(),
             Token::LCurly => {
@@ -448,5 +448,14 @@ mod tests {
         )
         .parse();
         assert!(grammar.is_err());
+    }
+
+    #[test]
+    fn parse_parentheses() {
+        let grammar_with =
+            Parser::new("terminal t; s : ( t ) t ; start s;".to_string().into()).parse();
+        let grammar_without =
+            Parser::new("terminal t; s :  t  t; start s;".to_string().into()).parse();
+        assert_eq!(grammar_with, grammar_without);
     }
 }

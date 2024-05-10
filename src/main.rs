@@ -61,24 +61,30 @@ fn print_conflicts(user_grammar: &Grammar) -> bool {
 
 fn print_first_and_follow_sets(user_grammar: &Grammar) {
     println!("\nFIRST and FOLLOW sets");
-    let mut first_sets: Vec<_> = user_grammar.first_sets().into_iter().collect();
+    let mut first_sets: Vec<(_, _, _)> = user_grammar
+        .first_sets()
+        .into_iter()
+        .map(|(id, first_set)| (id.clone(), user_grammar.text_for(id), first_set))
+        .collect();
     let follow_sets = user_grammar.follow_sets();
 
-    first_sets.sort_by_key(|(id, _)| id.clone());
+    first_sets.sort_by_key(|(_, name, _)| *name);
 
     let longest_nonterminal_name = first_sets
         .iter()
-        .map(|(id, _)| user_grammar.text_for(id.clone()).len())
+        .map(|(_, name, _)| name.len())
         .max()
         .unwrap();
 
-    for (nonterminal, first_set, follow_set) in first_sets.into_iter().map(|(id, first_set)| {
-        (
-            user_grammar.text_for(id.clone()),
-            first_set,
-            follow_sets.get(&id).cloned().unwrap_or_default(),
-        )
-    }) {
+    for (nonterminal, first_set, follow_set) in
+        first_sets.into_iter().map(|(id, name, first_set)| {
+            (
+                name,
+                first_set,
+                follow_sets.get(&id).cloned().unwrap_or_default(),
+            )
+        })
+    {
         let space_count = longest_nonterminal_name - nonterminal.len();
         let padding = " ".repeat(space_count + 1);
 

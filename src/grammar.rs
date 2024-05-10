@@ -132,11 +132,16 @@ impl RuleOption {
                 .map(|item| item.printable(id_map))
                 .collect::<Vec<_>>()
                 .join(" "),
-            RuleOption::Alternates { contents } => contents
-                .iter()
-                .map(|item| item.printable(id_map))
-                .collect::<Vec<_>>()
-                .join(" | "),
+            RuleOption::Alternates { contents } => {
+                format!(
+                    "({})",
+                    contents
+                        .iter()
+                        .map(|item| item.printable(id_map))
+                        .collect::<Vec<_>>()
+                        .join(" | ")
+                )
+            }
         }
     }
 }

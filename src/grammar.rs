@@ -572,4 +572,28 @@ mod tests {
 
         assert_eq!(reachables, [reachable, nonterminal].into());
     }
+
+    #[test]
+    fn undeclared_symbols() {
+        let mut id_map = IdentifierMap::default();
+
+        let declared = id_map.add_identifier("reachable".to_owned());
+        let undeclared = id_map.add_identifier("unreachable".to_owned());
+        let nonterminal = id_map.add_identifier("nonterminal".to_owned());
+
+        let mut builder = Grammar::builder();
+        builder.add_terminal(declared.clone());
+        builder.add_rule(
+            nonterminal.clone(),
+            RuleOption::Sequence {
+                contents: Box::new([RuleOption::Id(declared), RuleOption::Id(undeclared.clone())]),
+            },
+        );
+        builder.start(nonterminal.clone());
+        let grammar = builder.build(id_map).unwrap();
+
+        let undeclared_symbols: HashSet<_> = grammar.undeclared_symbols().collect();
+
+        assert_eq!(undeclared_symbols, [undeclared].into());
+    }
 }

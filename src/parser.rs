@@ -89,7 +89,7 @@ impl Parser {
     fn add_pseudo_rule(&mut self, rule: RuleOption) -> Identifier {
         let pseudo_id = self
             .tokenizer
-            .add_fake_id(format!("pseudo rule {}", self.pseudo_rule_count));
+            .add_fake_id(format!("pseudo_rule_{}", self.pseudo_rule_count));
         self.pseudo_rule_count += 1;
 
         match self.grammar_builder.add_rule(pseudo_id.clone(), rule) {

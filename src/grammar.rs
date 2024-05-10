@@ -548,3 +548,28 @@ impl Builder {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unreachable_symbols() {
+        let mut id_map = IdentifierMap::default();
+
+        let reachable = id_map.add_identifier("reachable".to_owned());
+        let unreachable = id_map.add_identifier("unreachable".to_owned());
+        let nonterminal = id_map.add_identifier("nonterminal".to_owned());
+
+        let mut builder = Grammar::builder();
+        builder.add_terminal(reachable.clone());
+        builder.add_terminal(unreachable);
+        builder.add_rule(nonterminal.clone(), RuleOption::Id(reachable.clone()));
+        builder.start(nonterminal.clone());
+        let grammar = builder.build(id_map).unwrap();
+
+        let reachables = grammar.reachable_symbols();
+
+        assert_eq!(reachables, [reachable, nonterminal].into());
+    }
+}

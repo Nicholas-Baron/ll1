@@ -303,6 +303,7 @@ impl Grammar {
         let mut first_sets: HashMap<_, FirstSet> = HashMap::new();
 
         let mut to_process: VecDeque<_> = self.non_terminals.keys().cloned().collect();
+        to_process.make_contiguous().sort();
 
         while let Some(non_term) = to_process.pop_front() {
             let mut first_set = HashSet::new();
@@ -593,5 +594,56 @@ mod tests {
         let undeclared_symbols: HashSet<_> = grammar.undeclared_symbols().collect();
 
         assert_eq!(undeclared_symbols, [undeclared].into());
+    }
+
+    #[test]
+    fn first_sets() {
+        let mut id_map = IdentifierMap::default();
+
+        let declared = id_map.add_identifier("reachable".to_owned());
+        let deeper_term = id_map.add_identifier("deeper".to_owned());
+        let nonterminal = id_map.add_identifier("nonterminal".to_owned());
+        let subrule = id_map.add_identifier("subrule".to_owned());
+
+        let mut builder = Grammar::builder();
+        builder.add_terminal(declared.clone());
+        builder.add_rule(
+            nonterminal.clone(),
+            RuleOption::Alternates {
+                contents: Box::new([
+                    RuleOption::Id(declared.clone()),
+                    RuleOption::Id(subrule.clone()),
+                    RuleOption::Empty,
+                ]),
+            },
+        );
+        builder.add_terminal(deeper_term.clone());
+        builder.add_rule(
+            subrule.clone(),
+            RuleOption::Alternates {
+                contents: Box::new([RuleOption::Id(deeper_term.clone()), RuleOption::Empty]),
+            },
+        );
+        builder.start(nonterminal.clone());
+        let grammar = builder.build(id_map).unwrap();
+
+        assert_eq!(
+            grammar.first_sets(),
+            [
+                (
+                    subrule.clone(),
+                    HashSet::from([FirstItem::Empty, FirstItem::Id(deeper_term.clone())])
+                ),
+                (
+                    nonterminal,
+                    HashSet::from([
+                        FirstItem::Empty,
+                        FirstItem::Id(declared),
+                        FirstItem::Id(deeper_term)
+                    ])
+                )
+            ]
+            .into()
+        );
     }
 }

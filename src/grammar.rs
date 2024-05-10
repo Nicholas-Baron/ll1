@@ -439,10 +439,8 @@ pub enum FirstItem {
 
 impl FirstItem {
     pub fn printable<'gram>(&self, grammar: &'gram Grammar) -> &'gram str {
-        match self {
-            FirstItem::Empty => "empty",
-            FirstItem::Id(id) => grammar.text_for(id.clone()),
-        }
+        self.as_identifier()
+            .map_or("%empty", |id| grammar.text_for(id.clone()))
     }
 
     fn into_identifier(self) -> Option<Identifier> {

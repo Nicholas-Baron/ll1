@@ -235,6 +235,50 @@ mod rule_tests {
             "(term | term)"
         );
     }
+
+    #[test]
+    fn first_first_conflict() {
+        let mut id_map = IdentifierMap::default();
+        let ident = id_map.add_identifier("identifier".to_owned());
+        let term = id_map.add_identifier("terminal".to_owned());
+
+        let all_first_sets: HashMap<_, _> =
+            [(ident.clone(), [FirstItem::Id(term.clone())].into())].into();
+
+        assert_eq!(
+            RuleOption::Empty.first_first_conflict_set(&all_first_sets),
+            Default::default()
+        );
+
+        assert_eq!(
+            RuleOption::Id(ident.clone()).first_first_conflict_set(&all_first_sets),
+            Default::default()
+        );
+
+        assert_eq!(
+            RuleOption::Sequence {
+                contents: Box::new([RuleOption::Id(ident.clone()), RuleOption::Id(ident.clone())])
+            }
+            .first_first_conflict_set(&all_first_sets),
+            Default::default()
+        );
+
+        assert_eq!(
+            RuleOption::Alternates {
+                contents: Box::new([RuleOption::Id(ident.clone()), RuleOption::Empty]),
+            }
+            .first_first_conflict_set(&all_first_sets),
+            Default::default()
+        );
+
+        assert_eq!(
+            RuleOption::Alternates {
+                contents: Box::new([RuleOption::Id(ident), RuleOption::Id(term.clone())]),
+            }
+            .first_first_conflict_set(&all_first_sets),
+            [FirstItem::Id(term)].into()
+        );
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

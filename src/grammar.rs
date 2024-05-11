@@ -6,38 +6,38 @@ use std::{
 use crate::identifier_map::{Identifier, IdentifierMap};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum RuleOption {
+pub enum Rule {
     Empty,
     Id(Identifier),
     /// `a b c`
     Sequence {
-        contents: Box<[RuleOption]>,
+        contents: Box<[Rule]>,
     },
     /// `a | b | c`
     Alternates {
-        contents: Box<[RuleOption]>,
+        contents: Box<[Rule]>,
     },
 }
 
-impl RuleOption {
+impl Rule {
     fn identifiers(&self) -> HashSet<Identifier> {
         match self {
-            RuleOption::Empty => [].into(),
-            RuleOption::Id(id) => [id.clone()].into(),
-            RuleOption::Alternates { contents } | RuleOption::Sequence { contents } => {
-                contents.iter().flat_map(RuleOption::identifiers).collect()
+            Rule::Empty => [].into(),
+            Rule::Id(id) => [id.clone()].into(),
+            Rule::Alternates { contents } | Rule::Sequence { contents } => {
+                contents.iter().flat_map(Rule::identifiers).collect()
             }
         }
     }
 
     fn first_set(&self, resolved_sets: &HashMap<Identifier, FirstSet>) -> FirstSet {
         match self {
-            RuleOption::Empty => [FirstItem::Empty].into(),
-            RuleOption::Id(id) => resolved_sets
+            Rule::Empty => [FirstItem::Empty].into(),
+            Rule::Id(id) => resolved_sets
                 .get(id)
                 .cloned()
                 .unwrap_or([FirstItem::Id(id.clone())].into()),
-            RuleOption::Sequence { contents } => {
+            Rule::Sequence { contents } => {
                 let mut idx = 0;
                 let mut first_set = contents[idx].first_set(resolved_sets);
                 while first_set.contains(&FirstItem::Empty) && contents.len() > idx {
@@ -47,7 +47,7 @@ impl RuleOption {
                 }
                 first_set
             }
-            RuleOption::Alternates { contents } => {
+            Rule::Alternates { contents } => {
                 contents.iter().fold(Default::default(), |acc, item| {
                     acc.union(&item.first_set(resolved_sets)).cloned().collect()
                 })
@@ -61,15 +61,15 @@ impl RuleOption {
         first_sets: &HashMap<Identifier, FirstSet>,
     ) -> FollowSet {
         match self {
-            RuleOption::Empty => [].into(),
-            RuleOption::Id(id) => (id == nonterminal)
+            Rule::Empty => [].into(),
+            Rule::Id(id) => (id == nonterminal)
                 .then_some([FollowItem::EndOfInput])
                 .map(Into::into)
                 .unwrap_or_default(),
-            RuleOption::Sequence { contents } => {
+            Rule::Sequence { contents } => {
                 let mut local_follow_set = FollowSet::new();
                 let mut slice = &contents[..];
-                let id_rule = RuleOption::Id(nonterminal.clone());
+                let id_rule = Rule::Id(nonterminal.clone());
 
                 while let Some(idx) = slice.iter().position(|item| item == &id_rule) {
                     slice = &slice[idx + 1..];
@@ -96,7 +96,7 @@ impl RuleOption {
 
                 local_follow_set
             }
-            RuleOption::Alternates { contents } => contents
+            Rule::Alternates { contents } => contents
                 .iter()
                 .map(|item| item.local_follows(nonterminal, first_sets))
                 .fold(FollowSet::new(), |acc, item| {
@@ -107,12 +107,12 @@ impl RuleOption {
 
     fn first_first_conflict_set(&self, all_first_sets: &HashMap<Identifier, FirstSet>) -> FirstSet {
         match self {
-            RuleOption::Empty | RuleOption::Id(_) => Default::default(),
-            RuleOption::Sequence { contents } => contents
+            Rule::Empty | Rule::Id(_) => Default::default(),
+            Rule::Sequence { contents } => contents
                 .first()
                 .map(|item| item.first_first_conflict_set(all_first_sets))
                 .unwrap_or_default(),
-            RuleOption::Alternates { contents } => {
+            Rule::Alternates { contents } => {
                 for (idx, lhs) in contents.iter().enumerate() {
                     for rhs in contents.iter().skip(idx + 1) {
                         let conflict_set: FirstSet = lhs
@@ -133,14 +133,14 @@ impl RuleOption {
 
     fn printable(&self, id_map: &IdentifierMap) -> String {
         match self {
-            RuleOption::Empty => "%empty".to_owned(),
-            RuleOption::Id(id) => id_map.text_for(id.clone()).to_owned(),
-            RuleOption::Sequence { contents } => contents
+            Rule::Empty => "%empty".to_owned(),
+            Rule::Id(id) => id_map.text_for(id.clone()).to_owned(),
+            Rule::Sequence { contents } => contents
                 .iter()
                 .map(|item| item.printable(id_map))
                 .collect::<Vec<_>>()
                 .join(" "),
-            RuleOption::Alternates { contents } => {
+            Rule::Alternates { contents } => {
                 format!(
                     "({})",
                     contents
@@ -160,14 +160,14 @@ mod rule_tests {
 
     #[test]
     fn identifiers_used() {
-        assert!(RuleOption::Empty.identifiers().is_empty());
+        assert!(Rule::Empty.identifiers().is_empty());
         let id = Identifier::mock_id(0);
-        let id_rule = RuleOption::Id(id.clone());
+        let id_rule = Rule::Id(id.clone());
         assert_eq!(id_rule.identifiers(), [id.clone()].into());
 
         assert_eq!(
-            RuleOption::Sequence {
-                contents: Box::new([RuleOption::Id(id.clone()), RuleOption::Id(id.clone())])
+            Rule::Sequence {
+                contents: Box::new([Rule::Id(id.clone()), Rule::Id(id.clone())])
             }
             .identifiers(),
             id_rule.identifiers()
@@ -179,12 +179,8 @@ mod rule_tests {
         let id1 = Identifier::mock_id(1);
         let id2 = Identifier::mock_id(2);
         assert_eq!(
-            RuleOption::Alternates {
-                contents: Box::new([
-                    RuleOption::Empty,
-                    RuleOption::Id(id1.clone()),
-                    RuleOption::Id(id2.clone())
-                ])
+            Rule::Alternates {
+                contents: Box::new([Rule::Empty, Rule::Id(id1.clone()), Rule::Id(id2.clone())])
             }
             .first_set(&Default::default()),
             [
@@ -196,8 +192,8 @@ mod rule_tests {
         );
 
         assert_eq!(
-            RuleOption::Sequence {
-                contents: Box::new([RuleOption::Id(id1.clone()), RuleOption::Id(id2.clone())])
+            Rule::Sequence {
+                contents: Box::new([Rule::Id(id1.clone()), Rule::Id(id2.clone())])
             }
             .first_set(&Default::default()),
             [FirstItem::Id(id1)].into()
@@ -209,27 +205,24 @@ mod rule_tests {
         let mut id_map = IdentifierMap::default();
         let only_id = id_map.add_identifier("term".to_owned());
 
-        assert_eq!(RuleOption::Empty.printable(&id_map), "%empty");
+        assert_eq!(Rule::Empty.printable(&id_map), "%empty");
 
         assert_eq!(
-            RuleOption::Id(only_id.clone()).printable(&id_map),
+            Rule::Id(only_id.clone()).printable(&id_map),
             id_map.text_for(only_id.clone())
         );
 
         assert_eq!(
-            RuleOption::Sequence {
-                contents: Box::new([
-                    RuleOption::Id(only_id.clone()),
-                    RuleOption::Id(only_id.clone())
-                ])
+            Rule::Sequence {
+                contents: Box::new([Rule::Id(only_id.clone()), Rule::Id(only_id.clone())])
             }
             .printable(&id_map),
             "term term"
         );
 
         assert_eq!(
-            RuleOption::Alternates {
-                contents: Box::new([RuleOption::Id(only_id.clone()), RuleOption::Id(only_id)])
+            Rule::Alternates {
+                contents: Box::new([Rule::Id(only_id.clone()), Rule::Id(only_id)])
             }
             .printable(&id_map),
             "(term | term)"
@@ -246,34 +239,34 @@ mod rule_tests {
             [(ident.clone(), [FirstItem::Id(term.clone())].into())].into();
 
         assert_eq!(
-            RuleOption::Empty.first_first_conflict_set(&all_first_sets),
+            Rule::Empty.first_first_conflict_set(&all_first_sets),
             Default::default()
         );
 
         assert_eq!(
-            RuleOption::Id(ident.clone()).first_first_conflict_set(&all_first_sets),
+            Rule::Id(ident.clone()).first_first_conflict_set(&all_first_sets),
             Default::default()
         );
 
         assert_eq!(
-            RuleOption::Sequence {
-                contents: Box::new([RuleOption::Id(ident.clone()), RuleOption::Id(ident.clone())])
+            Rule::Sequence {
+                contents: Box::new([Rule::Id(ident.clone()), Rule::Id(ident.clone())])
             }
             .first_first_conflict_set(&all_first_sets),
             Default::default()
         );
 
         assert_eq!(
-            RuleOption::Alternates {
-                contents: Box::new([RuleOption::Id(ident.clone()), RuleOption::Empty]),
+            Rule::Alternates {
+                contents: Box::new([Rule::Id(ident.clone()), Rule::Empty]),
             }
             .first_first_conflict_set(&all_first_sets),
             Default::default()
         );
 
         assert_eq!(
-            RuleOption::Alternates {
-                contents: Box::new([RuleOption::Id(ident), RuleOption::Id(term.clone())]),
+            Rule::Alternates {
+                contents: Box::new([Rule::Id(ident), Rule::Id(term.clone())]),
             }
             .first_first_conflict_set(&all_first_sets),
             [FirstItem::Id(term)].into()
@@ -284,7 +277,7 @@ mod rule_tests {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Grammar {
     terminals: HashSet<Identifier>,
-    non_terminals: HashMap<Identifier, RuleOption>,
+    non_terminals: HashMap<Identifier, Rule>,
     starting_id: Identifier,
     identifier_map: IdentifierMap,
 }
@@ -323,7 +316,7 @@ impl Grammar {
         Builder::default()
     }
 
-    pub fn starting_rule(&self) -> Option<&RuleOption> {
+    pub fn starting_rule(&self) -> Option<&Rule> {
         self.non_terminals.get(&self.starting_id)
     }
 
@@ -351,7 +344,7 @@ impl Grammar {
         let all_components: HashSet<_> = self
             .non_terminals
             .values()
-            .flat_map(RuleOption::identifiers)
+            .flat_map(Rule::identifiers)
             .collect();
 
         all_components
@@ -661,7 +654,7 @@ pub enum AddIdentifierStatus {
 #[derive(Default)]
 pub struct Builder {
     terminals: HashSet<Identifier>,
-    non_terminals: HashMap<Identifier, RuleOption>,
+    non_terminals: HashMap<Identifier, Rule>,
     starting_id: Option<Identifier>,
 }
 
@@ -698,7 +691,7 @@ impl Builder {
         }
     }
 
-    pub fn add_rule(&mut self, lhs: Identifier, rhs: RuleOption) -> AddIdentifierStatus {
+    pub fn add_rule(&mut self, lhs: Identifier, rhs: Rule) -> AddIdentifierStatus {
         if self.terminals.contains(&lhs) {
             AddIdentifierStatus::DuplicateTerminal
         } else {
@@ -732,7 +725,7 @@ mod tests {
         let mut builder = Grammar::builder();
         builder.add_terminal(reachable.clone());
         builder.add_terminal(unreachable);
-        builder.add_rule(nonterminal.clone(), RuleOption::Id(reachable.clone()));
+        builder.add_rule(nonterminal.clone(), Rule::Id(reachable.clone()));
         builder.start(nonterminal.clone());
         let grammar = builder.build(id_map).unwrap();
 
@@ -753,8 +746,8 @@ mod tests {
         builder.add_terminal(declared.clone());
         builder.add_rule(
             nonterminal.clone(),
-            RuleOption::Sequence {
-                contents: Box::new([RuleOption::Id(declared), RuleOption::Id(undeclared.clone())]),
+            Rule::Sequence {
+                contents: Box::new([Rule::Id(declared), Rule::Id(undeclared.clone())]),
             },
         );
         builder.start(nonterminal.clone());
@@ -778,19 +771,19 @@ mod tests {
         builder.add_terminal(declared.clone());
         builder.add_rule(
             nonterminal.clone(),
-            RuleOption::Alternates {
+            Rule::Alternates {
                 contents: Box::new([
-                    RuleOption::Id(declared.clone()),
-                    RuleOption::Id(subrule.clone()),
-                    RuleOption::Empty,
+                    Rule::Id(declared.clone()),
+                    Rule::Id(subrule.clone()),
+                    Rule::Empty,
                 ]),
             },
         );
         builder.add_terminal(deeper_term.clone());
         builder.add_rule(
             subrule.clone(),
-            RuleOption::Alternates {
-                contents: Box::new([RuleOption::Id(deeper_term.clone()), RuleOption::Empty]),
+            Rule::Alternates {
+                contents: Box::new([Rule::Id(deeper_term.clone()), Rule::Empty]),
             },
         );
         builder.start(nonterminal.clone());
@@ -830,26 +823,26 @@ mod tests {
         builder.add_terminal(declared.clone());
         builder.add_rule(
             nonterminal.clone(),
-            RuleOption::Sequence {
+            Rule::Sequence {
                 contents: Box::new([
-                    RuleOption::Id(subrule.clone()),
-                    RuleOption::Id(deeper_rule.clone()),
-                    RuleOption::Id(declared.clone()),
+                    Rule::Id(subrule.clone()),
+                    Rule::Id(deeper_rule.clone()),
+                    Rule::Id(declared.clone()),
                 ]),
             },
         );
         builder.add_terminal(deeper_term.clone());
         builder.add_rule(
             subrule.clone(),
-            RuleOption::Alternates {
+            Rule::Alternates {
                 contents: Box::new([
-                    RuleOption::Id(deeper_term.clone()),
-                    RuleOption::Empty,
-                    RuleOption::Id(deeper_rule.clone()),
+                    Rule::Id(deeper_term.clone()),
+                    Rule::Empty,
+                    Rule::Id(deeper_rule.clone()),
                 ]),
             },
         );
-        builder.add_rule(deeper_rule.clone(), RuleOption::Id(subrule.clone()));
+        builder.add_rule(deeper_rule.clone(), Rule::Id(subrule.clone()));
         builder.start(nonterminal.clone());
         let grammar = builder.build(id_map).unwrap();
 

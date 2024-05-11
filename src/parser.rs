@@ -1,6 +1,6 @@
 use crate::identifier_map::Identifier;
 use crate::{
-    grammar::{AddIdentifierStatus, Builder, Grammar, RuleOption},
+    grammar::{AddIdentifierStatus, Builder, Grammar, Rule},
     tokenizer::Tokenizer,
     tokens::Token,
 };
@@ -90,7 +90,7 @@ impl Parser {
         }
     }
 
-    fn add_pseudo_rule(&mut self, rule: RuleOption) -> Identifier {
+    fn add_pseudo_rule(&mut self, rule: Rule) -> Identifier {
         let pseudo_id = self
             .tokenizer
             .add_fake_id(format!("pseudo_rule_{}", self.pseudo_rule_count));
@@ -218,8 +218,8 @@ impl Parser {
             .ok_or(Error::NoStartingId)
     }
 
-    fn parse_rhs(&mut self) -> ParserResult<RuleOption> {
-        let mut current_sequence: Vec<RuleOption> = vec![];
+    fn parse_rhs(&mut self) -> ParserResult<Rule> {
+        let mut current_sequence: Vec<Rule> = vec![];
         let mut pipe_set: Vec<Vec<_>> = vec![];
 
         loop {
@@ -268,13 +268,13 @@ impl Parser {
                 contents.push(sequence_to_option(item)?);
             }
 
-            Ok(RuleOption::Alternates {
+            Ok(Rule::Alternates {
                 contents: contents.into(),
             })
         }
     }
 
-    fn parse_rhs_item(&mut self) -> ParserResult<RuleOption> {
+    fn parse_rhs_item(&mut self) -> ParserResult<Rule> {
         match self.next_token().unwrap() {
             Token::Semi => todo!(),
             Token::Pipe => todo!(),
@@ -283,11 +283,11 @@ impl Parser {
                 let inner = self.parse_rhs()?;
                 self.consume_expected(Some(Token::RBracket))?;
 
-                let pseudo_rule = RuleOption::Alternates {
-                    contents: Box::new([RuleOption::Empty, inner]),
+                let pseudo_rule = Rule::Alternates {
+                    contents: Box::new([Rule::Empty, inner]),
                 };
 
-                Ok(RuleOption::Id(self.add_pseudo_rule(pseudo_rule)))
+                Ok(Rule::Id(self.add_pseudo_rule(pseudo_rule)))
             }
             Token::RBracket => todo!(),
             Token::LParen => {
@@ -301,32 +301,32 @@ impl Parser {
                 let inner = self.parse_rhs()?;
                 self.consume_expected(Some(Token::RCurly))?;
 
-                let pseudo_rule = RuleOption::Alternates {
-                    contents: Box::new([RuleOption::Empty, inner.clone()]),
+                let pseudo_rule = Rule::Alternates {
+                    contents: Box::new([Rule::Empty, inner.clone()]),
                 };
 
                 let pseudo_id = self.add_pseudo_rule(pseudo_rule);
 
-                Ok(RuleOption::Sequence {
-                    contents: vec![inner, RuleOption::Id(pseudo_id)].into(),
+                Ok(Rule::Sequence {
+                    contents: vec![inner, Rule::Id(pseudo_id)].into(),
                 })
             }
             Token::RCurly => todo!(),
             Token::Start => todo!(),
             Token::Terminal => todo!(),
-            Token::Empty => Ok(RuleOption::Empty),
-            Token::Identifier(id) => Ok(RuleOption::Id(id)),
+            Token::Empty => Ok(Rule::Empty),
+            Token::Identifier(id) => Ok(Rule::Id(id)),
         }
     }
 }
 
-fn sequence_to_option(mut sequence: Vec<RuleOption>) -> ParserResult<RuleOption> {
+fn sequence_to_option(mut sequence: Vec<Rule>) -> ParserResult<Rule> {
     let err = Error::MissingEmptyMark;
 
     match sequence.len() {
         0 => Err(err),
         1 => sequence.pop().ok_or(err),
-        _ => Ok(RuleOption::Sequence {
+        _ => Ok(Rule::Sequence {
             contents: sequence.into_boxed_slice(),
         }),
     }
@@ -388,8 +388,8 @@ mod tests {
         let terminal = grammar.terminal_symbols().next().unwrap();
         assert_eq!(
             grammar.starting_rule(),
-            Some(RuleOption::Sequence {
-                contents: Box::new([RuleOption::Id(terminal.clone()), RuleOption::Id(terminal)])
+            Some(Rule::Sequence {
+                contents: Box::new([Rule::Id(terminal.clone()), Rule::Id(terminal)])
             })
             .as_ref()
         );
@@ -410,8 +410,8 @@ mod tests {
 
         assert_eq!(
             grammar.starting_rule(),
-            Some(RuleOption::Sequence {
-                contents: Box::new([RuleOption::Id(terminal), RuleOption::Id(pseudo_nonterminal)])
+            Some(Rule::Sequence {
+                contents: Box::new([Rule::Id(terminal), Rule::Id(pseudo_nonterminal)])
             })
             .as_ref()
         );
@@ -427,8 +427,8 @@ mod tests {
         let terminal = grammar.terminal_symbols().next().unwrap();
         assert_eq!(
             grammar.starting_rule(),
-            Some(RuleOption::Alternates {
-                contents: Box::new([RuleOption::Id(terminal.clone()), RuleOption::Id(terminal)])
+            Some(Rule::Alternates {
+                contents: Box::new([Rule::Id(terminal.clone()), Rule::Id(terminal)])
             })
             .as_ref()
         );
@@ -447,7 +447,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             grammar.starting_rule(),
-            Some(RuleOption::Id(pseudo_nonterminal)).as_ref()
+            Some(Rule::Id(pseudo_nonterminal)).as_ref()
         );
     }
 
@@ -473,7 +473,7 @@ mod tests {
     fn parse_empty_id() {
         let grammar = from_str("start s ; s : %empty ; ").unwrap();
 
-        assert_eq!(grammar.starting_rule(), Some(RuleOption::Empty).as_ref());
+        assert_eq!(grammar.starting_rule(), Some(Rule::Empty).as_ref());
     }
 
     #[test]

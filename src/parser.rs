@@ -563,4 +563,23 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    fn bad_rhs() {
+        assert_eq!(
+            from_str("terminal t ; start s ; s : start ;"),
+            Err(Error::UnexpectedToken {
+                expected: Box::new([
+                    Token::Semi,
+                    Token::Pipe,
+                    Token::Empty,
+                    Token::LParen,
+                    Token::LCurly,
+                    Token::LBracket,
+                ]),
+                could_be_id: true,
+                found: Some(Token::Start)
+            })
+        );
+    }
 }

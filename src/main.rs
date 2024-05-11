@@ -232,4 +232,15 @@ mod integration_tests {
         assert!(grammar.first_first_conflicts().is_empty());
         assert!(grammar.first_follow_conflicts().is_empty());
     }
+
+    #[test]
+    fn first_follows() {
+        let grammar = Parser::new(Tokenizer::from(
+            include_str!("../examples/first_follow.txt").to_string(),
+        ))
+        .parse()
+        .unwrap();
+
+        assert_eq!(grammar.first_follow_conflicts().len(), 1);
+    }
 }

@@ -275,11 +275,7 @@ impl Parser {
     }
 
     fn parse_rhs_item(&mut self) -> ParserResult<RuleOption> {
-        match self.next_token().ok_or_else(|| Error::UnexpectedToken {
-            expected: Box::new([Token::Empty, Token::LCurly, Token::LParen, Token::LBracket]),
-            could_be_id: true,
-            found: None,
-        })? {
+        match self.next_token().unwrap() {
             Token::Semi => todo!(),
             Token::Pipe => todo!(),
             Token::Colon => todo!(),

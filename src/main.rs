@@ -30,7 +30,10 @@ fn print_conflicts(user_grammar: &Grammar) -> bool {
 
     let has_conflicts = !first_follow_conflicts.is_empty() || !first_first_conflicts.is_empty();
 
-    println!("\nFIRST-FIRST conflicts:");
+    if !first_first_conflicts.is_empty() {
+        println!("\nFIRST-FIRST conflicts:");
+    }
+
     for (nonterminal, conflict_set) in first_first_conflicts {
         println!(
             "First/First Conflict in {} on {{ {} }}",
@@ -43,7 +46,10 @@ fn print_conflicts(user_grammar: &Grammar) -> bool {
         );
     }
 
-    println!("\nFIRST-FOLLOW conflicts:");
+    if !first_follow_conflicts.is_empty() {
+        println!("\nFIRST-FOLLOW conflicts:");
+    }
+
     for (nonterminal, conflict_set) in first_follow_conflicts {
         println!(
             "First/Follow Conflict in {} on {{ {} }}",

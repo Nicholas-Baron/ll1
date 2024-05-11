@@ -532,4 +532,28 @@ mod tests {
 
         assert_eq!(grammar, Err(Error::MissingEmptyMark));
     }
+
+    #[test]
+    fn bad_start() {
+        assert_eq!(
+            from_str("start { s } ; s : %empty; "),
+            Err(Error::UnexpectedToken {
+                expected: Box::new([]),
+                could_be_id: true,
+                found: Some(Token::LCurly)
+            })
+        );
+    }
+
+    #[test]
+    fn bad_terminal() {
+        assert_eq!(
+            from_str("terminal a | b ; s : a b ; start a;"),
+            Err(Error::UnexpectedToken {
+                expected: Box::new([Token::Semi]),
+                could_be_id: true,
+                found: Some(Token::Pipe),
+            })
+        );
+    }
 }

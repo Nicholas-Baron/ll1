@@ -400,72 +400,16 @@ impl Grammar {
             }
             if in_deadlock {
                 to_process.push_back(non_term);
-                let mut visited = HashSet::new();
-                let mut non_term_in_ring = self.starting_id();
 
-                // there could be a ring with tail
+                let (non_term, first_set) = break_deadlock_in(
+                    to_process.make_contiguous(),
+                    self.starting_id.clone(),
+                    &self.non_terminals,
+                    &first_sets,
+                );
 
-                loop {
-                    // start at the beginning
-                    visited.insert(non_term_in_ring.clone());
-
-                    non_term_in_ring = self
-                        .non_terminals
-                        .get(&non_term_in_ring)
-                        .unwrap()
-                        .first_set(&first_sets)
-                        .into_iter()
-                        .filter_map(|item: FirstItem| {
-                            item.as_identifier()
-                                .and_then(|id| to_process.contains(id).then_some(id).cloned())
-                        })
-                        .next()
-                        .unwrap();
-
-                    if visited.contains(&non_term_in_ring) {
-                        break;
-                    }
-                }
-
-                // found a nonterminal in the ring
-                let mut first_set: FirstSet = self
-                    .non_terminals
-                    .get(&non_term_in_ring)
-                    .unwrap()
-                    .first_set(&first_sets);
-
-                let mut found_self = false;
-                while !found_self {
-                    let nonterms: Vec<_> = first_set
-                        .iter()
-                        .filter_map(|item| {
-                            item.as_identifier().and_then(|id| {
-                                self.non_terminals.contains_key(id).then_some(id).cloned()
-                            })
-                        })
-                        .collect();
-
-                    first_set.retain(|item| {
-                        item.as_identifier()
-                            .map_or(true, |id| !nonterms.contains(id))
-                    });
-
-                    for nonterm in nonterms {
-                        if nonterm == non_term_in_ring {
-                            found_self = true;
-                            continue;
-                        }
-
-                        first_set.extend(
-                            self.non_terminals
-                                .get(&nonterm)
-                                .map_or_else(FirstSet::default, |item| item.first_set(&first_sets)),
-                        );
-                    }
-                }
-
-                to_process.retain(|id| id != &non_term_in_ring);
-                first_sets.insert(non_term_in_ring, first_set);
+                to_process.retain(|id| id != &non_term);
+                first_sets.insert(non_term, first_set);
                 in_deadlock = false;
                 continue;
             }
@@ -592,6 +536,76 @@ impl Grammar {
             })
             .collect()
     }
+}
+
+fn break_deadlock_in(
+    deadlock_set: &[Identifier],
+    start: Identifier,
+    non_terminals: &HashMap<Identifier, Rule>,
+    first_sets: &HashMap<Identifier, FirstSet>,
+) -> (Identifier, FirstSet) {
+    let mut visited = HashSet::new();
+    let mut non_term_in_ring = start;
+
+    // there could be a ring with tail
+
+    loop {
+        // start at the beginning
+        visited.insert(non_term_in_ring.clone());
+
+        non_term_in_ring = non_terminals
+            .get(&non_term_in_ring)
+            .unwrap()
+            .first_set(first_sets)
+            .into_iter()
+            .filter_map(|item: FirstItem| {
+                item.as_identifier()
+                    .and_then(|id| deadlock_set.contains(id).then_some(id).cloned())
+            })
+            .next()
+            .unwrap();
+
+        if visited.contains(&non_term_in_ring) {
+            break;
+        }
+    }
+
+    // found a nonterminal in the ring
+    let mut first_set: FirstSet = non_terminals
+        .get(&non_term_in_ring)
+        .unwrap()
+        .first_set(first_sets);
+
+    let mut found_self = false;
+    while !found_self {
+        let nonterms: Vec<_> = first_set
+            .iter()
+            .filter_map(|item| {
+                item.as_identifier()
+                    .and_then(|id| non_terminals.contains_key(id).then_some(id).cloned())
+            })
+            .collect();
+
+        first_set.retain(|item| {
+            item.as_identifier()
+                .map_or(true, |id| !nonterms.contains(id))
+        });
+
+        for nonterm in nonterms {
+            if nonterm == non_term_in_ring {
+                found_self = true;
+                continue;
+            }
+
+            first_set.extend(
+                non_terminals
+                    .get(&nonterm)
+                    .map_or_else(FirstSet::default, |item| item.first_set(first_sets)),
+            );
+        }
+    }
+
+    (non_term_in_ring, first_set)
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]

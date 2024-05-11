@@ -329,15 +329,19 @@ mod tests {
     use super::*;
     use std::collections::HashSet;
 
+    fn from_str(input: &str) -> ParserResult<Grammar> {
+        Parser::new(input.to_string().into()).parse()
+    }
+
     #[test]
     fn empty_grammar_errors() {
-        let grammar = Parser::new("".to_string().into()).parse();
+        let grammar = from_str("");
         assert_eq!(grammar, Err(Error::NoStartingId));
     }
 
     #[test]
     fn start_token_parses() {
-        let grammar = Parser::new("start s;".to_string().into()).parse();
+        let grammar = from_str("start s;");
         assert!(grammar.is_ok());
         let grammar = grammar.unwrap();
         assert_eq!(grammar.identifiers_used(), 1);
@@ -346,7 +350,7 @@ mod tests {
 
     #[test]
     fn start_and_terminals_parse() {
-        let grammar = Parser::new("terminal t u; start s;".to_string().into()).parse();
+        let grammar = from_str("terminal t u; start s;");
         assert!(grammar.is_ok());
         let grammar = grammar.unwrap();
         assert_eq!(grammar.identifiers_used(), 3);
@@ -362,13 +366,13 @@ mod tests {
 
     #[test]
     fn duplicate_terminals_error() {
-        let grammar = Parser::new("terminal t t;".to_string().into()).parse();
+        let grammar = from_str("terminal t t;");
         assert!(grammar.is_err());
     }
 
     #[test]
     fn parse_simple_rule() {
-        let grammar = Parser::new("terminal t; s : t t ; start s;".to_string().into()).parse();
+        let grammar = from_str("terminal t; s : t t ; start s;");
         eprintln!("{grammar:?}");
         assert!(grammar.is_ok());
         let grammar = grammar.unwrap();
@@ -385,7 +389,7 @@ mod tests {
 
     #[test]
     fn parse_repetition_rule() {
-        let grammar = Parser::new("terminal t; s : { t } ; start s;".to_string().into()).parse();
+        let grammar = from_str("terminal t; s : { t } ; start s;");
         eprintln!("{grammar:?}");
         assert!(grammar.is_ok());
         let grammar = grammar.unwrap();
@@ -407,7 +411,7 @@ mod tests {
 
     #[test]
     fn parse_pipe_rule() {
-        let grammar = Parser::new("terminal t; s : t | t ; start s;".to_string().into()).parse();
+        let grammar = from_str("terminal t; s : t | t ; start s;");
         eprintln!("{grammar:?}");
         assert!(grammar.is_ok());
         let grammar = grammar.unwrap();
@@ -424,7 +428,7 @@ mod tests {
 
     #[test]
     fn parse_optional_rule() {
-        let grammar = Parser::new("terminal t; s : [ t ] ; start s;".to_string().into()).parse();
+        let grammar = from_str("terminal t; s : [ t ] ; start s;");
         eprintln!("{grammar:?}");
         assert!(grammar.is_ok());
         let grammar = grammar.unwrap();
@@ -452,47 +456,42 @@ mod tests {
 
     #[test]
     fn parse_parentheses() {
-        let grammar_with =
-            Parser::new("terminal t; s : ( t ) t ; start s;".to_string().into()).parse();
-        let grammar_without =
-            Parser::new("terminal t; s :  t  t; start s;".to_string().into()).parse();
+        let grammar_with = from_str("terminal t; s : ( t ) t ; start s;");
+        let grammar_without = from_str("terminal t; s :  t  t; start s;");
         assert_eq!(grammar_with, grammar_without);
     }
 
     #[test]
     fn parse_empty_id() {
-        let grammar = Parser::new("start s ; s : %empty ; ".to_string().into())
-            .parse()
-            .unwrap();
+        let grammar = from_str("start s ; s : %empty ; ").unwrap();
 
         assert_eq!(grammar.starting_rule(), Some(RuleOption::Empty).as_ref());
     }
 
     #[test]
     fn duplicate_rule_error() {
-        let grammar = Parser::new("terminal s ; start s; s : s ;".to_string().into()).parse();
+        let grammar = from_str("terminal s ; start s; s : s ;");
 
         assert_eq!(grammar, Err(Error::ConflictingDeclaration("s".to_string())));
     }
 
     #[test]
     fn empty_terminal_list_error() {
-        let grammar = Parser::new("terminal ; start s; s : s ;".to_string().into()).parse();
+        let grammar = from_str("terminal ; start s; s : s ;");
 
         assert_eq!(grammar, Err(Error::EmptyTerminalList));
     }
 
     #[test]
     fn duplicate_terminal_error() {
-        let grammar = Parser::new("terminal s s ; start s; s : s ;".to_string().into()).parse();
+        let grammar = from_str("terminal s s ; start s; s : s ;");
 
         assert_eq!(grammar, Err(Error::TerminalDeclaredTwice("s".to_string())));
     }
 
     #[test]
     fn duplicate_start_error() {
-        let grammar =
-            Parser::new("terminal s ; start t; t : s ; start t; ".to_string().into()).parse();
+        let grammar = from_str("terminal s ; start t; t : s ; start t; ");
 
         assert_eq!(
             grammar,
@@ -503,7 +502,7 @@ mod tests {
     }
     #[test]
     fn unexpected_top_level_token_error() {
-        let grammar = Parser::new(" | terminal s ; start s; s : s ;".to_string().into()).parse();
+        let grammar = from_str(" | terminal s ; start s; s : s ;");
 
         assert_eq!(
             grammar,

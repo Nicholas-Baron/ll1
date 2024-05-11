@@ -305,8 +305,93 @@ impl Grammar {
         let mut to_process: VecDeque<_> = self.non_terminals.keys().cloned().collect();
         to_process.make_contiguous().sort();
 
+        let mut old_size = to_process.len();
+        let mut size = to_process.len();
+        let mut in_deadlock = false;
+
         while let Some(non_term) = to_process.pop_front() {
             let mut first_set = HashSet::new();
+
+            size -= 1;
+            if size == 0 {
+                size = to_process.len();
+                if size < old_size {
+                    old_size = size;
+                } else {
+                    in_deadlock = true;
+                }
+            }
+            if in_deadlock {
+                to_process.push_back(non_term);
+                let mut visited = HashSet::new();
+                let mut non_term_in_ring = self.starting_id();
+
+                // there could be a ring with tail
+
+                loop {
+                    // start at the beginning
+                    visited.insert(non_term_in_ring.clone());
+
+                    non_term_in_ring = self
+                        .non_terminals
+                        .get(&non_term_in_ring)
+                        .unwrap()
+                        .first_set(&first_sets)
+                        .into_iter()
+                        .filter_map(|item: FirstItem| {
+                            item.as_identifier()
+                                .and_then(|id| to_process.contains(id).then_some(id).cloned())
+                        })
+                        .next()
+                        .unwrap();
+
+                    if visited.contains(&non_term_in_ring) {
+                        break;
+                    }
+                }
+
+                // found a nonterminal in the ring
+                let mut first_set: FirstSet = self
+                    .non_terminals
+                    .get(&non_term_in_ring)
+                    .unwrap()
+                    .first_set(&first_sets);
+
+                let mut found_self = false;
+                while !found_self {
+                    let nonterms: Vec<_> = first_set
+                        .iter()
+                        .filter_map(|item| {
+                            item.as_identifier().and_then(|id| {
+                                self.non_terminals.contains_key(id).then_some(id).cloned()
+                            })
+                        })
+                        .collect();
+
+                    first_set.retain(|item| {
+                        item.as_identifier()
+                            .map_or(true, |id| !nonterms.contains(id))
+                    });
+
+                    for nonterm in nonterms {
+                        if nonterm == non_term_in_ring {
+                            found_self = true;
+                            continue;
+                        }
+
+                        first_set.extend(
+                            self.non_terminals
+                                .get(&nonterm)
+                                .map_or_else(FirstSet::default, |item| item.first_set(&first_sets)),
+                        );
+                    }
+                }
+
+                to_process.retain(|id| id != &non_term_in_ring);
+                first_sets.insert(non_term_in_ring, first_set);
+                in_deadlock = false;
+                continue;
+            }
 
             for symbol in self
                 .non_terminals
@@ -642,6 +727,60 @@ mod tests {
                         FirstItem::Id(deeper_term)
                     ])
                 )
+            ]
+            .into()
+        );
+    }
+
+    #[test]
+    fn follow_sets() {
+        let mut id_map = IdentifierMap::default();
+
+        let declared = id_map.add_identifier("reachable".to_owned());
+        let deeper_term = id_map.add_identifier("deeper".to_owned());
+        let nonterminal = id_map.add_identifier("nonterminal".to_owned());
+        let subrule = id_map.add_identifier("subrule".to_owned());
+        let deeper_rule = id_map.add_identifier("deeper_rule".to_owned());
+
+        let mut builder = Grammar::builder();
+        builder.add_terminal(declared.clone());
+        builder.add_rule(
+            nonterminal.clone(),
+            RuleOption::Sequence {
+                contents: Box::new([
+                    RuleOption::Id(subrule.clone()),
+                    RuleOption::Id(deeper_rule.clone()),
+                    RuleOption::Id(declared.clone()),
+                ]),
+            },
+        );
+        builder.add_terminal(deeper_term.clone());
+        builder.add_rule(
+            subrule.clone(),
+            RuleOption::Alternates {
+                contents: Box::new([
+                    RuleOption::Id(deeper_term.clone()),
+                    RuleOption::Empty,
+                    RuleOption::Id(deeper_rule.clone()),
+                ]),
+            },
+        );
+        builder.add_rule(deeper_rule.clone(), RuleOption::Id(subrule.clone()));
+        builder.start(nonterminal.clone());
+        let grammar = builder.build(id_map).unwrap();
+
+        let common_follow = HashSet::from([
+            FollowItem::EndOfInput,
+            FollowItem::Id(declared.clone()),
+            FollowItem::Id(deeper_term),
+        ]);
+
+        assert_eq!(
+            grammar.follow_sets(),
+            [
+                (deeper_rule.clone(), common_follow.clone()),
+                (subrule.clone(), common_follow),
+                (nonterminal, HashSet::from([FollowItem::EndOfInput]))
             ]
             .into()
         );

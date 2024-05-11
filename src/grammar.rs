@@ -74,14 +74,22 @@ impl RuleOption {
                 while let Some(idx) = slice.iter().position(|item| item == &id_rule) {
                     slice = &slice[idx + 1..];
 
-                    if let Some(next) = slice.first() {
+                    for next in slice {
+                        local_follow_set.remove(&FollowItem::EndOfInput);
+
                         local_follow_set.extend(next.first_set(first_sets).into_iter().map(
                             |item| match item {
                                 FirstItem::Id(id) => FollowItem::Id(id),
                                 FirstItem::Empty => FollowItem::EndOfInput,
                             },
                         ));
-                    } else {
+
+                        if !local_follow_set.contains(&FollowItem::EndOfInput) {
+                            break;
+                        }
+                    }
+
+                    if slice.is_empty() {
                         local_follow_set.insert(FollowItem::EndOfInput);
                     }
                 }
@@ -802,7 +810,6 @@ mod tests {
         let grammar = builder.build(id_map).unwrap();
 
         let common_follow = HashSet::from([
-            FollowItem::EndOfInput,
             FollowItem::Id(declared.clone()),
             FollowItem::Id(deeper_term),
         ]);

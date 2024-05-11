@@ -202,7 +202,7 @@ impl Parser {
                 }
             } else {
                 return Err(Error::UnexpectedToken {
-                    expected: Box::new([Token::Start]),
+                    expected: Box::new([Token::Start, Token::Terminal]),
                     could_be_id: true,
                     found: Some(tok),
                 });
@@ -466,5 +466,52 @@ mod tests {
             .unwrap();
 
         assert_eq!(grammar.starting_rule(), Some(RuleOption::Empty).as_ref());
+    }
+
+    #[test]
+    fn duplicate_rule_error() {
+        let grammar = Parser::new("terminal s ; start s; s : s ;".to_string().into()).parse();
+
+        assert_eq!(grammar, Err(Error::ConflictingDeclaration("s".to_string())));
+    }
+
+    #[test]
+    fn empty_terminal_list_error() {
+        let grammar = Parser::new("terminal ; start s; s : s ;".to_string().into()).parse();
+
+        assert_eq!(grammar, Err(Error::EmptyTerminalList));
+    }
+
+    #[test]
+    fn duplicate_terminal_error() {
+        let grammar = Parser::new("terminal s s ; start s; s : s ;".to_string().into()).parse();
+
+        assert_eq!(grammar, Err(Error::TerminalDeclaredTwice("s".to_string())));
+    }
+
+    #[test]
+    fn duplicate_start_error() {
+        let grammar =
+            Parser::new("terminal s ; start t; t : s ; start t; ".to_string().into()).parse();
+
+        assert_eq!(
+            grammar,
+            Err(Error::DuplicateStarts {
+                starts: ["t".to_string(), "t".to_string()]
+            })
+        );
+    }
+    #[test]
+    fn unexpected_top_level_token_error() {
+        let grammar = Parser::new(" | terminal s ; start s; s : s ;".to_string().into()).parse();
+
+        assert_eq!(
+            grammar,
+            Err(Error::UnexpectedToken {
+                expected: Box::new([Token::Start, Token::Terminal]),
+                could_be_id: true,
+                found: Some(Token::Pipe),
+            })
+        );
     }
 }

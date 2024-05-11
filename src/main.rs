@@ -66,7 +66,7 @@ fn print_conflicts(user_grammar: &Grammar) -> bool {
 }
 
 fn print_first_and_follow_sets(user_grammar: &Grammar) {
-    println!("\nFIRST and FOLLOW sets");
+    println!("FIRST and FOLLOW sets");
     let mut first_sets: Vec<(_, _, _)> = user_grammar
         .first_sets()
         .into_iter()

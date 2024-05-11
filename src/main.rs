@@ -112,6 +112,51 @@ fn print_first_and_follow_sets(user_grammar: &Grammar) {
     }
 }
 
+fn print_warnings(user_grammar: &Grammar) {
+    use std::collections::HashSet;
+
+    let undeclared_symbols: HashSet<_> = user_grammar.undeclared_symbols().collect();
+    let reachable_symbols = user_grammar.reachable_symbols();
+    let unreachable_nonterminals: HashSet<_> = user_grammar
+        .nonterminal_symbols()
+        .filter(|sym| !reachable_symbols.contains(sym))
+        .collect();
+
+    let unreachable_terminals: HashSet<_> = user_grammar
+        .terminal_symbols()
+        .filter(|sym| !reachable_symbols.contains(sym))
+        .collect();
+
+    let warning_count =
+        undeclared_symbols.len() + unreachable_terminals.len() + unreachable_nonterminals.len();
+
+    if warning_count > 0 {
+        println!("{warning_count} warnings found");
+    }
+
+    for id in undeclared_symbols {
+        println!(
+            "Identifier {} is not explicity a terminal or nonterminal",
+            user_grammar.text_for(id)
+        );
+    }
+
+    let starting_symbol_name = user_grammar.text_for(user_grammar.starting_id());
+    for unreachable_nonterminal in unreachable_nonterminals {
+        println!(
+            "Nonterminal {} cannot be reached from starting symbol {starting_symbol_name}",
+            user_grammar.text_for(unreachable_nonterminal),
+        );
+    }
+
+    for unreachable_terminal in unreachable_terminals {
+        println!(
+            "Terminal {} cannot be reached from starting symbol {starting_symbol_name}",
+            user_grammar.text_for(unreachable_terminal),
+        );
+    }
+}
+
 fn main() {
     let Some(filename) = env::args().nth(1).map(PathBuf::from) else {
         eprintln!("No input path specified");
@@ -143,37 +188,9 @@ fn main() {
         }
     };
 
-    println!("\n{user_grammar}\nWarnings:");
+    println!("\n{user_grammar}");
 
-    for id in user_grammar.undeclared_symbols() {
-        println!(
-            "Identifier {} is not explicity a terminal or nonterminal",
-            user_grammar.text_for(id)
-        );
-    }
-
-    let reachable_symbols = user_grammar.reachable_symbols();
-    for unreachable_nonterminal in user_grammar
-        .nonterminal_symbols()
-        .filter(|sym| !reachable_symbols.contains(sym))
-    {
-        println!(
-            "Nonterminal {} cannot be reached from starting symbol {}",
-            user_grammar.text_for(unreachable_nonterminal),
-            user_grammar.text_for(user_grammar.starting_id())
-        );
-    }
-
-    for unreachable_terminal in user_grammar
-        .terminal_symbols()
-        .filter(|sym| !reachable_symbols.contains(sym))
-    {
-        println!(
-            "Terminal {} cannot be reached from starting symbol {}",
-            user_grammar.text_for(unreachable_terminal),
-            user_grammar.text_for(user_grammar.starting_id())
-        );
-    }
+    print_warnings(&user_grammar);
 
     print_first_and_follow_sets(&user_grammar);
 

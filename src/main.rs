@@ -228,5 +228,8 @@ mod integration_tests {
         for terminal in grammar.terminal_symbols() {
             assert!(!firsts.contains_key(&terminal));
         }
+
+        assert!(grammar.first_first_conflicts().is_empty());
+        assert!(grammar.first_follow_conflicts().is_empty());
     }
 }

@@ -1,0 +1,13 @@
+terminal declared;
+
+nonterminal : subrule deeper_rule declared ;
+
+terminal deeper_term;
+
+subrule : deeper_term | %empty | deeper_rule ;
+
+deeper_rule : even_deeper_rule ;
+
+even_deeper_rule : subrule ;
+
+start nonterminal;

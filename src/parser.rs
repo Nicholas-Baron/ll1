@@ -458,4 +458,13 @@ mod tests {
             Parser::new("terminal t; s :  t  t; start s;".to_string().into()).parse();
         assert_eq!(grammar_with, grammar_without);
     }
+
+    #[test]
+    fn parse_empty_id() {
+        let grammar = Parser::new("start s ; s : %empty ; ".to_string().into())
+            .parse()
+            .unwrap();
+
+        assert_eq!(grammar.starting_rule(), Some(RuleOption::Empty).as_ref());
+    }
 }

@@ -195,6 +195,38 @@ mod rule_tests {
             [FirstItem::Id(id1)].into()
         );
     }
+
+    #[test]
+    fn printable() {
+        let mut id_map = IdentifierMap::default();
+        let only_id = id_map.add_identifier("term".to_owned());
+
+        assert_eq!(RuleOption::Empty.printable(&id_map), "%empty");
+
+        assert_eq!(
+            RuleOption::Id(only_id.clone()).printable(&id_map),
+            id_map.text_for(only_id.clone())
+        );
+
+        assert_eq!(
+            RuleOption::Sequence {
+                contents: Box::new([
+                    RuleOption::Id(only_id.clone()),
+                    RuleOption::Id(only_id.clone())
+                ])
+            }
+            .printable(&id_map),
+            "term term"
+        );
+
+        assert_eq!(
+            RuleOption::Alternates {
+                contents: Box::new([RuleOption::Id(only_id.clone()), RuleOption::Id(only_id)])
+            }
+            .printable(&id_map),
+            "(term | term)"
+        );
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

@@ -481,8 +481,15 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_rule_error() {
+    fn already_terminal_error() {
         let grammar = from_str("terminal s ; start s; s : s ;");
+
+        assert_eq!(grammar, Err(Error::ConflictingDeclaration("s".to_string())));
+    }
+
+    #[test]
+    fn already_nonterminal_error() {
+        let grammar = from_str("start s; s : s ; terminal s;");
 
         assert_eq!(grammar, Err(Error::ConflictingDeclaration("s".to_string())));
     }

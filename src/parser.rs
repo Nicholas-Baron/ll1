@@ -20,6 +20,7 @@ pub enum Error {
     TerminalDeclaredTwice(String),
     NonterminalDeclaredTwice(String),
     ConflictingDeclaration(String),
+    MissingEmptyMark,
 }
 
 impl std::fmt::Display for Error {
@@ -63,6 +64,9 @@ impl std::fmt::Display for Error {
                         .unwrap_or_default(),
                 )),
             },
+            Error::MissingEmptyMark => f.write_str(
+                "Use '%empty' to leave an explicit empty rule instead of leaving it blank",
+            ),
         }
     }
 }
@@ -255,11 +259,17 @@ impl Parser {
         }
 
         if pipe_set.is_empty() {
-            Ok(sequence_to_option(current_sequence))
+            sequence_to_option(current_sequence)
         } else {
             pipe_set.push(current_sequence);
+
+            let mut contents = vec![];
+            for item in pipe_set {
+                contents.push(sequence_to_option(item)?);
+            }
+
             Ok(RuleOption::Alternates {
-                contents: pipe_set.into_iter().map(sequence_to_option).collect(),
+                contents: contents.into(),
             })
         }
     }
@@ -314,13 +324,15 @@ impl Parser {
     }
 }
 
-fn sequence_to_option(mut sequence: Vec<RuleOption>) -> RuleOption {
+fn sequence_to_option(mut sequence: Vec<RuleOption>) -> ParserResult<RuleOption> {
+    let err = Error::MissingEmptyMark;
+
     match sequence.len() {
-        0 => todo!(),
-        1 => sequence.pop().expect("Pop is guarded by a length check"),
-        _ => RuleOption::Sequence {
+        0 => Err(err),
+        1 => sequence.pop().ok_or(err),
+        _ => Ok(RuleOption::Sequence {
             contents: sequence.into_boxed_slice(),
-        },
+        }),
     }
 }
 
@@ -512,5 +524,12 @@ mod tests {
                 found: Some(Token::Pipe),
             })
         );
+    }
+
+    #[test]
+    fn require_empty_ident() {
+        let grammar = from_str("terminal t; start s ; s : | t ;");
+
+        assert_eq!(grammar, Err(Error::MissingEmptyMark));
     }
 }

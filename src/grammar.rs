@@ -69,9 +69,11 @@ impl Rule {
             Rule::Sequence { contents } => {
                 let mut local_follow_set = FollowSet::new();
                 let mut slice = &contents[..];
-                let id_rule = Rule::Id(nonterminal.clone());
 
-                while let Some(idx) = slice.iter().position(|item| item == &id_rule) {
+                while let Some(idx) = slice
+                    .iter()
+                    .position(|item| item.identifiers().contains(nonterminal))
+                {
                     slice = &slice[idx + 1..];
 
                     for next in slice {
@@ -873,6 +875,48 @@ mod tests {
                 (nonterminal, HashSet::from([FollowItem::EndOfInput]))
             ]
             .into()
+        );
+    }
+
+    #[test]
+    fn follow_of_opt() {
+        let mut id_map = IdentifierMap::default();
+
+        let start_rule = id_map.add_identifier("start_rule".into());
+        let lhs = id_map.add_identifier("lhs".into());
+        let rhs = id_map.add_identifier("rhs".into());
+        let follow_rule = id_map.add_identifier("follow_rule".into());
+        let follow_terminal = id_map.add_identifier("follow_terminal".into());
+
+        let mut builder = Grammar::builder();
+
+        builder.add_rule(
+            start_rule.clone(),
+            Rule::Sequence {
+                contents: vec![
+                    Rule::Alternates {
+                        contents: vec![Rule::Id(lhs.clone()), Rule::Id(rhs.clone())]
+                            .into_boxed_slice(),
+                    },
+                    Rule::Id(follow_rule.clone()),
+                ]
+                .into_boxed_slice(),
+            },
+        );
+
+        builder.add_rule(rhs.clone(), Rule::Empty);
+
+        builder.add_rule(follow_rule, Rule::Id(follow_terminal.clone()));
+
+        builder.add_terminal(follow_terminal.clone());
+        builder.add_terminal(lhs);
+
+        builder.start(start_rule);
+        let grammar = builder.build(id_map).unwrap();
+        let follows = grammar.follow_sets();
+        assert_eq!(
+            follows.get(&rhs).unwrap(),
+            &HashSet::from([FollowItem::Id(follow_terminal)])
         );
     }
 }

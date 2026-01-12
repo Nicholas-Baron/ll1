@@ -204,7 +204,7 @@ fn main() {
 
     println!(
         "\nProvided grammar is {}LL1",
-        has_conflicts.then_some("not ").unwrap_or_default()
+        if has_conflicts { "not " } else { "" }
     );
 }
 

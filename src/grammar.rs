@@ -588,10 +588,7 @@ fn break_deadlock_in(
             })
             .collect();
 
-        first_set.retain(|item| {
-            item.as_identifier()
-                .map_or(true, |id| !nonterms.contains(id))
-        });
+        first_set.retain(|item| item.as_identifier().is_none_or(|id| !nonterms.contains(id)));
 
         for nonterm in nonterms {
             if nonterm == non_term_in_ring {

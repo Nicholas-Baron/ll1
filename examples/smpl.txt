@@ -1,0 +1,10 @@
+terminal main var id semi dot comma;
+terminal lparen rparen lbrack rbrack lcurly rcurly;
+
+start computation;
+
+computation : main [ varDecl ] { funcDecl } lcurly statSequence rcurly dot;
+
+varDecl : var id { comma id } semi ;
+
+statSequence : { statement semi } ;

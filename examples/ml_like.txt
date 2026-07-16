@@ -1,0 +1,130 @@
+
+start file_contents;
+
+file_contents : { top_level }
+              ;
+
+top_level : mod_decl | type_decl | var_decl | fun_decl ;
+
+mod_decl : mod_kw identifier eq struct_kw { top_level | func_sig } end_kw
+         ;
+
+func_sig : identifier colon type_usage { arrow type_usage }
+         ;
+
+type_usage : open_curly [ tuple_types ] close_curly 
+           ; 
+
+terminal mod_kw identifier eq struct_kw end_kw ;
+
+// type Pair x = {x, x}
+// type IntMap v = Map Int v
+type_decl : type_kw { identifier } eq sum_type_spec ;
+
+terminal open_curly close_curly colon comma pipe arrow;
+
+sum_type_spec : named_type_spec [ pipe sum_type_spec ]
+              ;
+
+named_type_spec : identifier [ type_spec | eq expr ]
+                ;
+
+type_spec : {identifier}
+          | open_curly field_list close_curly
+          ;
+
+field_list : %empty
+           | tuple_types
+           | struct_fields
+           ;
+
+struct_fields : typed_name [ comma [ struct_fields ] ]
+              ;
+
+typed_name : identifier colon identifier 
+           ;
+
+tuple_types : type_name [ comma [ tuple_types ] ]
+            ;
+
+type_name : deref type_name
+          | { identifier }
+          ;
+
+var_decl : let_kw identifier eq expr ;
+
+fun_decl : fun_kw identifier [ params ] eq expr ;
+
+params : typed_name [ comma [ params ] ]
+       ;
+
+terminal type_kw let_kw fun_kw ;
+
+terminal not and or plus minus div mul mod;
+
+expr : equality [ and_chain | or_chain ]
+     | if_expr
+     ;
+
+and_chain : { and equality }
+          ;
+
+or_chain : { or equality }
+         ;
+
+terminal not_equal equal ;
+
+equality : comparison [ not_equal comparison | {equal comparison} ]
+         ;
+
+terminal lt gt ge le ;
+
+comparison : bit_shift [ (lt | gt | ge | le) bit_shift ]
+           ;
+
+terminal left_shift right_shift ;
+
+bit_shift : addition [ (left_shift | right_shift) addition ]
+          ;
+
+addition : multiplication addition_rest ; 
+addition_rest : [ (plus | minus) multiplication addition_rest ] ;
+
+multiplication : unary_op [ { (mul | div | mod) unary_op } ] 
+               ;
+
+unary_op : (not | minus | address_of | deref) atomic
+         ;
+
+terminal address_of deref open_paren close_paren dot open_brack close_brack semi;
+
+atomic : field_access
+       | func_call
+       | open_paren expr close_paren
+       | compound_expr
+       | anon_func
+       ;
+
+anon_func : fun_kw [ params ] compound_expr ;
+
+terminal if_kw then_kw else_kw while_kw for_kw;
+
+if_expr : if_kw expr then_kw expr else_kw expr ;
+
+field_access : identifier [ { accessor } ] ;
+
+accessor : dot identifier
+         | open_brack expr close_brack
+         ;
+
+compound_expr : open_curly [ compound_expr_contents ] close_curly ;
+
+compound_expr_contents : (expr | var_decl | for_loop | while_loop) [ semi compound_expr_contents ];
+
+while_loop : while_kw expr compound_expr ;
+
+for_loop : for_kw identifier eq expr semi expr semi identifier eq expr compound_expr ;
+
+func_call : expr open_paren [ arguments ] close_paren ;
+
+arguments : expr [ comma [ arguments ] ] ;

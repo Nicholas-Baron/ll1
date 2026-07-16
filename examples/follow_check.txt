@@ -1,0 +1,9 @@
+terminal x y z ;
+
+start a;
+
+a : b c x ;
+
+b : y z ;
+
+c : [ z ] ;

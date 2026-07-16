@@ -161,6 +161,10 @@ fn print_warnings(user_grammar: &Grammar) {
             user_grammar.text_for(unreachable_terminal),
         );
     }
+
+    if warning_count > 0 {
+        println!();
+    }
 }
 
 fn main() {

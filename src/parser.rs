@@ -90,11 +90,16 @@ impl Parser {
         }
     }
 
-    fn add_pseudo_rule(&mut self, rule: Rule) -> Identifier {
+    fn reserve_pseudo_rule(&mut self) -> Identifier {
         let pseudo_id = self
             .tokenizer
             .add_fake_id(format!("pseudo_rule_{}", self.pseudo_rule_count));
         self.pseudo_rule_count += 1;
+        pseudo_id
+    }
+
+    fn add_pseudo_rule(&mut self, rule: Rule, id: Option<Identifier>) -> Identifier {
+        let pseudo_id = id.unwrap_or_else(|| self.reserve_pseudo_rule());
 
         match self.grammar_builder.add_rule(pseudo_id.clone(), rule) {
             AddIdentifierStatus::Success => {}
@@ -287,7 +292,7 @@ impl Parser {
                     contents: Box::new([Rule::Empty, inner]),
                 };
 
-                Ok(Rule::Id(self.add_pseudo_rule(pseudo_rule)))
+                Ok(Rule::Id(self.add_pseudo_rule(pseudo_rule, None)))
             }
             Token::RBracket => todo!(),
             Token::LParen => {
@@ -301,11 +306,18 @@ impl Parser {
                 let inner = self.parse_rhs()?;
                 self.consume_expected(Some(Token::RCurly))?;
 
+                let pseudo_id = self.reserve_pseudo_rule();
+
                 let pseudo_rule = Rule::Alternates {
-                    contents: Box::new([Rule::Empty, inner.clone()]),
+                    contents: Box::new([
+                        Rule::Empty,
+                        Rule::Sequence {
+                            contents: Box::new([inner.clone(), Rule::Id(pseudo_id.clone())]),
+                        },
+                    ]),
                 };
 
-                let pseudo_id = self.add_pseudo_rule(pseudo_rule);
+                let pseudo_id = self.add_pseudo_rule(pseudo_rule, Some(pseudo_id));
 
                 Ok(Rule::Sequence {
                     contents: vec![inner, Rule::Id(pseudo_id)].into(),

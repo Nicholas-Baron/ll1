@@ -1,5 +1,4 @@
 #![warn(
-    clippy::from_iter_instead_of_collect,
     clippy::if_not_else,
     clippy::items_after_statements,
     clippy::manual_assert,
